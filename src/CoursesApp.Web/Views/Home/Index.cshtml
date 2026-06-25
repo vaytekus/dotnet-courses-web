@@ -1,0 +1,52 @@
+﻿@model List<CoursesApp.Domain.Entities.Course>
+
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Courses</h1>
+    @if (!Model.Any())
+    {
+        <p>No courses found.</p>
+    }
+    else
+    {
+        <ul class="accordion list-group" id="accordionCourse">
+            @foreach (var course in Model)
+            {
+                <li class="accordion-item list-group-item">
+                    <div class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@course.Id" aria-expanded="false" aria-controls="collapse-@course.Id">
+                            <h2 class="mb-0 me-1">@course.Name</h2> - 
+                            <p class="mb-0 ms-1">@course.Description</p>
+                        </button>
+                    </div>
+                    <div id="collapse-@course.Id" class="accordion-collapse collapse" data-bs-parent="#accordionCourse">
+                        <div class="accordion-body">
+                            <ul class="accordion list-group" id="accordionGroup-@course.Id">
+                                @foreach (var group in course.Groups)
+                                {
+                                    <li class="accordion-item list-group-item">
+                                        <div class="accordion-header">
+                                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@group.Id" aria-expanded="true" aria-controls="collapse-@group.Id">
+                                                <h3>@group.Name</h3>
+                                            </button>
+                                        </div>
+                                        <div id="collapse-@group.Id" 
+                                            class="accordion-collapse collapse" 
+                                            data-bs-parent="#accordionGroup-@course.Id"
+                                            data-group-id="@group.Id"
+                                            >
+                                            <div class="students-container"></div>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+</div>

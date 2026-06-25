@@ -1,0 +1,30 @@
+@model List<CoursesApp.Web.DTOs.StudentDto>
+
+@{
+    Layout = null;
+}
+
+@if (!Model.Any())
+{
+    <p>No students.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <th scope="col">#</th>
+            <th scope="col">First</th>
+            <th scope="col">Last</th>
+        </thead>
+        <tbody>
+            @foreach (var (student, index) in Model.Select((s, i) => (s, i)))
+            {
+                <tr>
+                    <th scope="row">@(index + 1)</th>
+                    <td>@student.FirstName</td>
+                    <td>@student.LastName</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
