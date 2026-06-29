@@ -1,0 +1,114 @@
+@model CoursesApp.Web.Models.GroupsIndexViewModel
+
+@{
+    Layout = null;
+}
+
+@if (!Model.Groups.Any())
+{
+    <li class="list-group-item text-center text-muted">No groups found.</li>
+}
+else
+{
+    @foreach (var group in Model.Groups)
+    {
+        <li class="accordion-item list-group-item" data-id="@group.Id">
+            <div class="accordion-header d-flex align-items-center">
+
+                <button class="accordion-button collapsed view-mode flex-grow-1" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapse-@group.Id">
+                    <strong class="me-2">@group.Name</strong>
+                    <span class="text-muted me-2">@group.Course.Name</span>
+                    <span class="text-muted me-2">
+                        @(group.Teacher != null
+                            ? $"{group.Teacher.FirstName} {group.Teacher.LastName}"
+                            : "—")
+                    </span>
+                    <span class="badge bg-secondary">@group.Students.Count students</span>
+                </button>
+
+                <div class="edit-mode d-none d-flex flex-grow-1 gap-2 p-2">
+                    <input class="form-control" name="groupName" value="@group.Name" />
+                    <select class="form-select" name="teacherId">
+                        <option value="">No teacher</option>
+                        @foreach (var teacher in Model.Teachers)
+                        {
+                            <option value="@teacher.Id"
+                                    selected="@(teacher.Id == group.TeacherId)">
+                                @teacher.FirstName @teacher.LastName
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="view-mode d-flex gap-1 pe-3">
+                    <button class="btn btn-sm btn-primary btn-edit" type="button">Edit</button>
+                    <button class="btn btn-sm btn-danger btn-delete" type="button">Delete</button>
+                </div>
+
+                <div class="edit-mode d-none d-flex gap-1 pe-3">
+                    <button class="btn btn-sm btn-success btn-save" type="button" disabled>Save</button>
+                    <button class="btn btn-sm btn-secondary btn-cancel" type="button">Cancel</button>
+                </div>
+            </div>
+
+            <div id="collapse-@group.Id" class="accordion-collapse collapse">
+                <div class="accordion-body">
+                    @if (group.Students.Any())
+                    {
+                        <div class="d-flex justify-content-end mb-2">
+                            <button class="btn btn-sm btn-warning btn-clear-students" type="button">
+                                Clear all students
+                            </button>
+                        </div>
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th style="width:50px">#</th>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{ int j = 1; }
+                                @foreach (var student in group.Students)
+                                {
+                                    <tr>
+                                        <td>@(j++)</td>
+                                        <td>@student.FirstName</td>
+                                        <td>@student.LastName</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No students in this group.</p>
+                    }
+                </div>
+            </div>
+        </li>
+    }
+
+    <li class="list-group-item text-center">
+        <button class="btn btn-sm btn-outline-secondary btn-page"
+                data-page="@(Model.Page - 1)" disabled="@(Model.Page == 1)">«</button>
+
+        @for (int i = 1; i <= Model.TotalPages; i++)
+        {
+            if (i == 1 || i == Model.TotalPages || (i >= Model.Page - 2 && i <= Model.Page + 2))
+            {
+                <button class="btn btn-sm @(i == Model.Page ? "btn-primary" : "btn-outline-secondary") btn-page"
+                        data-page="@i">@i</button>
+            }
+            else if (i == Model.Page - 3 || i == Model.Page + 3)
+            {
+                <span class="px-1">...</span>
+            }
+        }
+
+        <button class="btn btn-sm btn-outline-secondary btn-page"
+                data-page="@(Model.Page + 1)" disabled="@(Model.Page == Model.TotalPages)">»</button>
+    </li>
+}

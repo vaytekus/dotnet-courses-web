@@ -1,0 +1,79 @@
+@model CoursesApp.Web.Models.StudentsIndexViewModel
+
+@{
+    Layout = null;
+}
+
+@if (!Model.Students.Any())
+{
+    <tr><td colspan="5" class="text-center">No students found.</td></tr>
+}
+else
+{
+    @for (int i = 0; i < Model.Students.Count; i++)
+        {
+            <tr data-id="@Model.Students[i].Id">
+                <td>@(i+1)</td>
+                <td>
+                    <span class="view-mode">
+                        @Model.Students[i].FirstName
+                    </span>
+                    <span class="edit-mode d-none">
+                        <input class="form-control" value="@Model.Students[i].FirstName" name="firstName"/>
+                    </span>
+                </td>
+                <td>
+                    <span class="view-mode">
+                        @Model.Students[i].LastName
+                    </span>
+                    <span class="edit-mode d-none">
+                        <input class="form-control" value="@Model.Students[i].LastName" name="lastName"/>
+                    </span>
+                </td>
+                <td>
+                    <span class="view-mode">
+                        @Model.Groups.FirstOrDefault(g => g.Id == Model.Students[i].GroupId)?.Name
+                    </span>
+                    <span class="edit-mode d-none">
+                        <select class="form-select" name="groupId">
+                            @foreach (var group in Model.Groups)
+                            {
+                                <option value="@group.Id" selected="@(group.Id == Model.Students[i].GroupId)">@group.Name</option>
+                            }
+                        </select>
+                    </span>
+                </td>
+                <td>
+                    <span class="view-mode">
+                        <button class="btn btn-sm btn-primary btn-edit">Edit</button>
+                        <button class="btn btn-sm btn-danger btn-delete">Delete</button>
+                    </span>
+                    <span class="edit-mode d-none">
+                        <button class="btn btn-sm btn-success btn-save">Save</button>
+                        <button class="btn btn-sm btn-secondary btn-cancel">Cancel</button>
+                    </span>
+                </td>
+            </tr>
+        }
+    
+    <tr>
+        <td colspan="5" class="text-center">
+            <button class="btn btn-sm btn-outline-secondary btn-page" data-page="@(Model.Page - 1)" disabled="@(Model.Page == 1)">«</button>
+
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                if (i == 1 || i == Model.TotalPages || (i >= Model.Page - 2 && i <= Model.Page + 2))
+                {
+                    <button class="btn btn-sm @(i == Model.Page ? "btn-primary" : "btn-outline-secondary") btn-page"
+                            data-page="@i">@i</button>
+                }
+                else if (i == Model.Page - 3 || i == Model.Page + 3)
+                {
+                    <span class="px-1">...</span>
+                }
+            }
+            
+            <button class="btn btn-sm btn-outline-secondary btn-page" data-page="@(Model.Page + 1)" disabled="@(Model.Page == Model.TotalPages)">»</button>
+        </td>
+    </tr> 
+}

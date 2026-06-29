@@ -21,8 +21,5 @@
       <ProjectReference Include="..\CoursesApp.Infrastructure\CoursesApp.Infrastructure.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <AdditionalFiles Include="Views\Teachers\Index.cshtml" />
-    </ItemGroup>
 
 </Project>

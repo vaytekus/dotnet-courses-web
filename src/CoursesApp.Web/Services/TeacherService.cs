@@ -1,3 +1,4 @@
+using CoursesApp.Domain.Entities;
 using CoursesApp.Domain.Interfaces;
 using CoursesApp.Web.DTOs;
 
@@ -5,6 +6,19 @@ namespace CoursesApp.Web.Services
 {
     public class TeacherService(IUnitOfWork uow) : ITeacherService
     {
+        public async Task AddTeacherAsync(TeacherDto dto)
+        {
+            var teacher = new Teacher
+            {
+                Id = Guid.NewGuid(),
+                FirstName = dto.FirstName,
+                LastName = dto.LastName
+            };
+
+            uow.Teachers.AddTeacher(teacher);
+            await uow.SaveAsync();
+        }
+        
         public async Task UpdateTeacherAsync(TeacherEditDto dto)
         {
             var teacher  = await uow.Teachers.GetTeacherByIdAsync(dto.Id);

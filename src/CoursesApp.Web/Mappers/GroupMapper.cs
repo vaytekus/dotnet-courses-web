@@ -5,15 +5,29 @@ namespace CoursesApp.Web.Mappers
 {
     public static class GroupMapper
     {
-        public static GroupDto ToDto(this Group groupDto) => new()
+        public static GroupSelectDto ToSelectDto(this Group groupDto) => new()
         {
             Id = groupDto.Id,
             Name = groupDto.Name
         };
 
-        public static List<GroupDto> ToDtoList(this List<Group> groups)
+        public static List<GroupSelectDto> ToSelectDtoList(this List<Group> groups)
         {
-            return groups.Select(g => g.ToDto()).ToList();
+            return groups.Select(g => g.ToSelectDto()).ToList();
         }
+
+        public static GroupDto ToGroupDto(this Group group) => new()
+        {
+            Id = group.Id,
+            Name = group.Name,
+            Course = group.Course,
+            CourseId = group.CourseId,
+            Teacher = group.Teacher,
+            TeacherId = group.TeacherId,
+            Students = group.Students
+        };
+        
+        public static List<GroupDto> ToGroupDtoList(this List<Group> groups)
+            => groups.Select(g => g.ToGroupDto()).ToList();
     }
 }

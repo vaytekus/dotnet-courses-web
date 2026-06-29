@@ -1,37 +1,103 @@
-@model List<CoursesApp.Domain.Entities.Group>
+@model CoursesApp.Web.Models.GroupsIndexViewModel
+
+@section Scripts
+{
+    <script src="~/js/groups.js"></script>
+}
 
 @{
     ViewData["Title"] = "Groups";
 }
 <h1>@ViewData["Title"]</h1>
 
-@if (!Model.Any())
-{
-    <p>No groups found.</p>
-}
-else
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Name</th>
-                <th>Course</th>
-                <th>Teacher</th>
-                <th>Students qty</th>
-            </tr>
-        </thead>
-        <tbody>
-            @for (int i = 0; i < Model.Count; i++)
-            {
-                <tr>
-                    <td>@(i+1)</td>
-                    <td>@Model[i].Name</td>
-                    <td>@Model[i].Course.Name</td>
-                    <td>@Model[i].Teacher?.FirstName @Model[i].Teacher?.LastName</td>
-                    <td>@Model[i].Students.Count</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+<form action="#" id="add-group-form" class="mb-3">
+    <div class="input-group d-none align-items-center gap-2">
+        <div class="col">
+            <label for="groupName" class="form-label">Group Name</label>
+            <input type="text" class="form-control" placeholder="Group name" id="groupName">
+        </div>
+        <div class="col">
+            <label for="selectCourse" class="form-label">Course</label>
+            <select class="form-select" id="selectCourse">
+                <option value="">Choose course</option>
+                @foreach (var course in Model.Courses)
+                {
+                    <option value="@course.Id">@course.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col">
+            <label for="selectTeacher" class="form-label">Teacher</label>
+            <select class="form-select" id="selectTeacher">
+                <option value="">No teacher</option>
+                @foreach (var teacher in Model.Teachers)
+                {
+                    <option value="@teacher.Id">@teacher.FirstName @teacher.LastName</option>
+                }
+            </select>
+        </div>
+        <div class="col">
+            <label class="form-label">&nbsp;</label>
+            <div>
+                <button id="btn-add-save" type="button" class="btn btn-sm btn-success" disabled>Save</button>
+                <button id="btn-add-cancel" type="button" class="btn btn-sm btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <div class="button-holder">
+        <button id="btn-add-group" type="button" class="btn btn-sm btn-primary">+ Add Group</button>
+    </div>
+</form>
+
+@* Фільтри: значення 0/1/2 відповідають enum GroupStudentFilter *@
+<form id="search-group-form" class="d-flex gap-2 mb-3">
+    <input type="text" id="search-input" class="form-control w-25" placeholder="Search by name...">
+    <select class="form-select w-25" id="filter-course">
+        <option value="">All courses</option>
+        @foreach (var course in Model.Courses)
+        {
+            <option value="@course.Id">@course.Name</option>
+        }
+    </select>
+    <select class="form-select w-25" id="filter-students">
+        <option value="0">All groups</option>
+        <option value="1">With students</option>
+        <option value="2">Without students</option>
+    </select>
+</form>
+
+<ul class="list-group" id="groups-accordion">
+    @await Html.PartialAsync("_GroupsBody", Model)
+</ul>
+
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">Are you sure you want to delete this group?</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="btn-confirm-delete">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="clearStudentsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Clear All Students</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">Are you sure you want to remove all students from this group?</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="btn-confirm-clear">Clear</button>
+            </div>
+        </div>
+    </div>
+</div>

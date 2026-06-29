@@ -32,4 +32,9 @@ body {
 
 .accordion-button:focus {
   box-shadow: none;
-} 
+}
+
+.nav-link.active {
+  font-weight: bold;
+  color: #000 !important;
+}

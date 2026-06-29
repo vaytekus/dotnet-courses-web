@@ -13,11 +13,6 @@ namespace CoursesApp.Infrastructure.Repositories
         {
             _context = context;
         }
-        
-        public async Task<List<Student>> GetAllStudentsAsync()
-        {
-            return await _context.Students.ToListAsync();
-        }
 
         public async Task<List<Student>> GetStudentsByGroupAsync(Guid groupId)
         {
@@ -26,9 +21,43 @@ namespace CoursesApp.Infrastructure.Repositories
                 .ToListAsync();
         }
 
+        public async Task<(List<Student>, int TotalCount)> GetFilteredStudentAsync(
+            string? searchQuery, Guid? groupId, int page, int pageSize)
+        {
+            var query = _context.Students
+                .Include(s => s.Group)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(searchQuery))
+            {
+                query = query.Where(s => 
+                    s.FirstName.Contains(searchQuery) ||
+                    s.LastName.Contains(searchQuery) || 
+                    s.Group.Name.Contains(searchQuery));
+            }
+
+            if (groupId.HasValue)
+            {
+                query = query.Where(s => s.GroupId == groupId);
+            }
+            
+            var total = await query.CountAsync();
+            var students = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            
+            return (students, total);
+        }
+        
         public async Task<Student?> GetStudentByIdAsync(Guid id)
         {
             return await _context.Students.FindAsync(id);
+        }
+        
+        public void AddStudent(Student student)
+        {
+            _context.Students.Add(student);
         }
 
         public void UpdateStudent(Student student)

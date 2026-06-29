@@ -20,44 +20,64 @@ namespace CoursesApp.Infrastructure.Repositories
             return await _context.Groups.ToListAsync();
         }
 
-        public async Task<List<Group>> GetAllGroupWithDetailsAsync()
+        public async Task<(List<Group> Groups, int TotalCount)> GetFilteredGroupAsync(
+            string? search, Guid? courseID, GroupStudentFilter studentFilter, int page, int pageSize)
         {
-            return await _context.Groups
+            var query = _context.Groups
                 .Include(g => g.Course)
                 .Include(g => g.Teacher)
                 .Include(g => g.Students)
                 .AsSplitQuery()
-                .ToListAsync();
-        }
+                .AsQueryable();
 
-        public Task<List<Group>> GetFilteredGroupAsync(string query, Guid? courseID, GroupStudentFilter studentFilter, int page, int pageSize)
-        {
-            throw new NotImplementedException();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(g => g.Name.Contains(search));
+            }
+
+            if (courseID.HasValue)
+            {
+                query = query.Where(g => g.CourseId == courseID.Value);
+            }
+
+            query = studentFilter switch
+            {
+                GroupStudentFilter.WithStudents => query.Where(g => g.Students.Any()),
+                GroupStudentFilter.WithoutStudents => query.Where(g => !g.Students.Any()),
+                _ => query
+            };
+            
+            var total = await query.CountAsync();
+
+            var groups = await query
+                .OrderBy(g => g.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (groups, total);
         }
 
         public Task<Group?> GetByIdAsync(Guid groupId)
         {
-            throw new NotImplementedException();
-        }
-
-        public Task<int> GetGroupsCountAsync(string searchQuery, Guid? courseID, GroupStudentFilter studentFilter)
-        {
-            throw new NotImplementedException();
+            return _context.Groups
+                .Include(g => g.Students)
+                .FirstOrDefaultAsync(g => g.Id == groupId);
         }
         
         public void AddGroup(Group group)
         {
-            throw new NotImplementedException();
+            _context.Groups.Add(group);
         }
 
         public void UpdateGroup(Group group)
         {
-            throw new NotImplementedException();
+            _context.Groups.Update(group);
         }
 
         public void DeleteGroup(Group group)
         {
-            throw new NotImplementedException();
+            _context.Groups.Remove(group);
         }
     }
 }
