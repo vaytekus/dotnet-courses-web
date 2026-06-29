@@ -4,12 +4,14 @@ ASP.NET Core MVC web application for managing courses, groups, students and teac
 
 ## Features
 
-- Browse courses with expandable groups via accordion
-- View students per group loaded dynamically via AJAX
-- Inline editing of students and teachers (edit/save/cancel without page reload)
-- Delete students and teachers with confirmation dialog
-- Filter students by group
+- **Groups**: accordion list with inline edit (name, teacher), delete protection when students exist, clear all students action, filter by course and student count
+- **Students**: inline CRUD, search by name with debounce, filter by group, pagination
+- **Teachers**: inline CRUD, search by name with debounce, pagination
+- AJAX-based updates — no full page reloads
+- Bootstrap 5 modals for delete/clear confirmations
+- Server-side pagination with numbered buttons and ellipsis
 - SQL Server database with EF Core migrations and seed data
+- Serilog structured logging
 
 ## Stack
 
@@ -23,9 +25,9 @@ ASP.NET Core MVC web application for managing courses, groups, students and teac
 
 ```
 src/
-├── CoursesApp.Domain/         # Entities, interfaces
+├── CoursesApp.Domain/         # Entities, interfaces, enums
 ├── CoursesApp.Infrastructure/ # EF Core, repositories, migrations
-└── CoursesApp.Web/            # Controllers, views, services
+└── CoursesApp.Web/            # Controllers, views, services, DTOs
 ```
 
 ## Database
@@ -45,17 +47,8 @@ Fill in connection string in `src/CoursesApp.Web/appsettings.Development.json`:
   "ConnectionStrings": {
     "DefaultConnection": "Server=localhost;Database=CoursesDb;User Id=sa;Password=YOUR_PASSWORD;TrustServerCertificate=True;"
   },
-  "Serilog": {
-    "MinimumLevel": {
-      "Default": "Debug",
-      "Override": {
-        "Microsoft": "Warning",
-        "Microsoft.EntityFrameworkCore": "Information"
-      }
-    },
-    "WriteTo": [
-      { "Name": "Console" }
-    ]
+  "Pagination": {
+    "PageSize": 5
   }
 }
 ```
