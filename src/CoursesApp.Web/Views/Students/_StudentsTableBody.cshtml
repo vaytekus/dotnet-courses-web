@@ -56,24 +56,27 @@ else
             </tr>
         }
     
-    <tr>
-        <td colspan="5" class="text-center">
-            <button class="btn btn-sm btn-outline-secondary btn-page" data-page="@(Model.Page - 1)" disabled="@(Model.Page == 1)">«</button>
+    @if (Model.TotalPages > 1)
+    {
+        <tr>
+            <td colspan="5" class="text-center">
+                <button class="btn btn-sm btn-outline-secondary btn-page" data-page="@(Model.Page - 1)" disabled="@(Model.Page == 1)">«</button>
 
-            @for (int i = 1; i <= Model.TotalPages; i++)
-            {
-                if (i == 1 || i == Model.TotalPages || (i >= Model.Page - 2 && i <= Model.Page + 2))
+                @for (int i = 1; i <= Model.TotalPages; i++)
                 {
-                    <button class="btn btn-sm @(i == Model.Page ? "btn-primary" : "btn-outline-secondary") btn-page"
-                            data-page="@i">@i</button>
+                    if (i == 1 || i == Model.TotalPages || (i >= Model.Page - 2 && i <= Model.Page + 2))
+                    {
+                        <button class="btn btn-sm @(i == Model.Page ? "btn-primary" : "btn-outline-secondary") btn-page"
+                                data-page="@i">@i</button>
+                    }
+                    else if (i == Model.Page - 3 || i == Model.Page + 3)
+                    {
+                        <span class="px-1">...</span>
+                    }
                 }
-                else if (i == Model.Page - 3 || i == Model.Page + 3)
-                {
-                    <span class="px-1">...</span>
-                }
-            }
-            
-            <button class="btn btn-sm btn-outline-secondary btn-page" data-page="@(Model.Page + 1)" disabled="@(Model.Page == Model.TotalPages)">»</button>
-        </td>
-    </tr> 
+
+                <button class="btn btn-sm btn-outline-secondary btn-page" data-page="@(Model.Page + 1)" disabled="@(Model.Page == Model.TotalPages)">»</button>
+            </td>
+        </tr>
+    }
 }

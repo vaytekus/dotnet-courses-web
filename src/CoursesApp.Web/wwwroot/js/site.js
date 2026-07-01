@@ -1,16 +1,23 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
+document.addEventListener('show.bs.collapse', function (e) {
+    const collapseEl = e.target;
+    const groupId = collapseEl.dataset.groupId;
+    if (!groupId) return;
 
-document.addEventListener('DOMContentLoaded', function(){
-    document.querySelectorAll('.accordion-collapse[data-group-id]').forEach(el => {
-        el.addEventListener('show.bs.collapse', function(){
-            const groupId = this.dataset.groupId;
-            const container = this.querySelector('.students-container');
-            if(container.innerHTML.trim()) return;
-            
-            fetch(`/Students/GetStudentsByGroupId?groupId=${groupId}`)
-                .then(res => res.text())
-                .then(html => container.innerHTML = html);
-        })
-    });
+    const container = collapseEl.querySelector('.students-container');
+    if (!container || container.innerHTML.trim()) return;
+
+    e.preventDefault();
+
+    container.innerHTML = `
+        <div class="d-flex justify-content-center py-3">
+            <div class="spinner-border spinner-border-sm text-secondary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>`;
+
+    bootstrap.Collapse.getOrCreateInstance(collapseEl).show();
+
+    fetch(`/Groups/GetStudent?groupId=${groupId}`)
+        .then(res => res.text())
+        .then(html => { container.innerHTML = html; });
 });

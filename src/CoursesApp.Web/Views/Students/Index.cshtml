@@ -1,12 +1,12 @@
-@model CoursesApp.Web.Models.GroupsIndexViewModel
+@model CoursesApp.Web.Models.StudentsIndexViewModel
 
 @section Scripts
 {
-    <script src="~/js/groups.js"></script>
+    <script src="~/js/students.js"></script>
 }
 
 @{
-    ViewData["Title"] = "Groups";
+    ViewData["Title"] = "Students";
 }
 <h1>@ViewData["Title"]</h1>
 
@@ -43,19 +43,18 @@
     </div>
 </form>
 
-<form action="#" id="search-student-form">
-    <div class="w-50 mb-2">
-        <input id="search-input" type="text" class="form-control" placeholder="Search by name..." aria-label="First name">
-    </div>
-    <div class="w-50">
-        <select class="form-select" name="searchGroupId" id="filteringByGroup">
-            <option value="">All groups</option>
-            @foreach (var group in Model.Groups)
-            {
-                <option value="@group.Id">@group.Name</option>
-            }
-        </select>
-    </div>
+<hr class="my-2 pt-2">
+
+<form action="#" id="search-student-form" class="d-flex align-items-center gap-2 mb-3">
+    <span class="text-muted small fw-semibold me-1">Filters:</span>
+    <input id="search-input" type="text" class="form-control w-25" placeholder="Search by name...">
+    <select class="form-select w-25" name="searchGroupId" id="filteringByGroup">
+        <option value="">All groups</option>
+        @foreach (var group in Model.Groups)
+        {
+            <option value="@group.Id">@group.Name</option>
+        }
+    </select>
 </form>
 
 <table class="table align-middle" id="students-table" style="table-layout: fixed">

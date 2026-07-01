@@ -16,9 +16,13 @@ namespace CoursesApp.Infrastructure.Data
             ICourseRepository courses,
             IGroupRepository groups,
             ITeacherRepository teachers,
-            IStudentRepository students
-            )
+            IStudentRepository students)
         {
+            ArgumentNullException.ThrowIfNull(context);
+            ArgumentNullException.ThrowIfNull(courses);
+            ArgumentNullException.ThrowIfNull(groups);
+            ArgumentNullException.ThrowIfNull(teachers);
+            ArgumentNullException.ThrowIfNull(students);
             _context = context;
             Courses = courses;
             Groups = groups;

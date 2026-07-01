@@ -11,6 +11,7 @@ namespace CoursesApp.Infrastructure.Repositories
 
         public StudentRepository(AppDbContext context)
         {
+            ArgumentNullException.ThrowIfNull(context);
             _context = context;
         }
 
@@ -68,6 +69,15 @@ namespace CoursesApp.Infrastructure.Repositories
         public void DeleteStudent(Student student)
         {
             _context.Students.Remove(student);
+        }
+
+        public async Task DeleteAllByGroupAsync(Guid groupId)
+        {
+            var students = await _context.Students
+                .Where(s => s.GroupId == groupId)
+                .ToListAsync();
+            
+            _context.Students.RemoveRange(students);
         }
     }
 }

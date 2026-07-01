@@ -12,6 +12,8 @@ namespace CoursesApp.Domain.Interfaces
             GroupStudentFilter studentFilter, 
             int page, 
             int pageSize);
+
+        Task UnassignTeacherAsync(Guid teacherId);
         Task<Group?> GetByIdAsync(Guid groupId);
         void AddGroup(Group group);
         void UpdateGroup(Group group);

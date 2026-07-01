@@ -1,49 +1,76 @@
 using CoursesApp.Domain.Entities;
 using CoursesApp.Domain.Interfaces;
 using CoursesApp.Web.DTOs;
+using CoursesApp.Web.Mappers;
+using CoursesApp.Web.Models;
 
 namespace CoursesApp.Web.Services
 {
-    public class TeacherService(IUnitOfWork uow) : ITeacherService
+    public class TeacherService(
+        IUnitOfWork uow,
+        ILogger<TeacherService> logger) : ITeacherService
     {
+        private readonly IUnitOfWork _uow = uow ?? throw new ArgumentNullException(nameof(uow));
+        private readonly ILogger<TeacherService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+        public async Task<TeachersIndexViewModel> GetPageAsync(string? search, int page, int pageSize)
+        {
+            var (teachers, total) = await _uow.Teachers.GetFilteredTeachersAsync(search, page, pageSize);
+            return new TeachersIndexViewModel
+            {
+                Teachers = teachers.ToDtoList(),
+                Page = page,
+                TotalCount = total,
+                PageSize = pageSize
+            };
+        }
+
         public async Task AddTeacherAsync(TeacherDto dto)
         {
+            ArgumentNullException.ThrowIfNull(dto);
+            _logger.LogInformation("Adding teacher {FirstName} {LastName}", dto.FirstName, dto.LastName);
             var teacher = new Teacher
             {
                 Id = Guid.NewGuid(),
                 FirstName = dto.FirstName,
                 LastName = dto.LastName
             };
-
-            uow.Teachers.AddTeacher(teacher);
-            await uow.SaveAsync();
+            _uow.Teachers.AddTeacher(teacher);
+            await _uow.SaveAsync();
+            _logger.LogInformation("Teacher {Id} added successfully", teacher.Id);
         }
-        
+
         public async Task UpdateTeacherAsync(TeacherEditDto dto)
         {
-            var teacher  = await uow.Teachers.GetTeacherByIdAsync(dto.Id);
+            ArgumentNullException.ThrowIfNull(dto);
+            _logger.LogInformation("Updating teacher {Id}", dto.Id);
+            var teacher = await _uow.Teachers.GetTeacherByIdAsync(dto.Id);
             if (teacher == null)
             {
-                throw new KeyNotFoundException($"Teacher {dto.Id} not found"); 
+                _logger.LogWarning("Teacher {Id} not found", dto.Id);
+                throw new KeyNotFoundException($"Teacher {dto.Id} not found");
             }
-            
             teacher.FirstName = dto.FirstName;
             teacher.LastName = dto.LastName;
-
-            uow.Teachers.UpdateTeacher(teacher);
-            await uow.SaveAsync();
+            _uow.Teachers.UpdateTeacher(teacher);
+            await _uow.SaveAsync();
+            _logger.LogInformation("Teacher {Id} updated successfully", dto.Id);
         }
 
         public async Task DeleteTeacherAsync(Guid id)
         {
-            var teacher = await uow.Teachers.GetTeacherByIdAsync(id);
+            _logger.LogInformation("Deleting teacher {Id}", id);
+            var teacher = await _uow.Teachers.GetTeacherByIdAsync(id);
             if (teacher == null)
             {
-                throw new KeyNotFoundException("Teacher not found"); 
+                _logger.LogWarning("Teacher {Id} not found", id);
+                throw new KeyNotFoundException("Teacher not found");
             }
-
-            uow.Teachers.DeleteTeacher(teacher);
-            await uow.SaveAsync();
+            
+            await _uow.Groups.UnassignTeacherAsync(teacher.Id);
+            _uow.Teachers.DeleteTeacher(teacher);
+            await _uow.SaveAsync();
+            _logger.LogInformation("Teacher {Id} deleted successfully", id);
         }
     }
 }

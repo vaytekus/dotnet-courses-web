@@ -15,7 +15,8 @@ builder.Host.UseSerilog();
 try
 {
     // Add services to the container.
-    builder.Services.AddControllersWithViews();
+    builder.Services.AddControllersWithViews()
+        .AddRazorRuntimeCompilation();
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddWebServices(builder.Configuration);
     builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);

@@ -1,5 +1,6 @@
 let currentPage = 1;
 let debounceTimer;
+let currentImportGroupId = '';
 
 function searchGroups(page = 1) {
     currentPage = page;
@@ -69,18 +70,61 @@ if (document.getElementById('groups-accordion')) {
         }
 
         if (e.target.classList.contains('btn-delete')) {
+            const studentRow = e.target.closest('tr[data-id]');
+
+            if (studentRow) {
+                const cells = studentRow.querySelectorAll('td');
+                const firstName = cells[1].textContent.trim();
+                const lastName = cells[2].textContent.trim();
+                const modal = new bootstrap.Modal(document.getElementById('deleteStudentModal'));
+                document.getElementById('delete-student-name').textContent = `${firstName} ${lastName}`;
+                document.getElementById('btn-confirm-delete-student').onclick = () => {
+                    fetch(`/groups/deletestudent?id=${studentRow.dataset.id}`, { method: 'POST' })
+                        .then(r => r.json())
+                        .then(res => {
+                            modal.hide();
+                            if (res.success) {
+                                const groupItem = studentRow.closest('li[data-id]');
+                                studentRow.remove();
+
+                                const tbody = groupItem.querySelector('tbody');
+                                if (tbody) {
+                                    tbody.querySelectorAll('tr').forEach((row, i) => {
+                                        row.querySelector('td:first-child').textContent = i + 1;
+                                    });
+                                }
+
+                                const newCount = parseInt(groupItem.dataset.studentCount) - 1;
+                                groupItem.dataset.studentCount = newCount;
+                                const badge = groupItem.querySelector('.badge');
+                                if (badge) badge.textContent = `${newCount} stu`;
+
+                                if (newCount === 0) {
+                                    const accordionBody = groupItem.querySelector('.accordion-body');
+                                    accordionBody.innerHTML = '<p class="text-muted mb-0">No students in this group.</p>';
+                                }
+                            }
+                        });
+                };
+                modal.show();
+                return;
+            }
+
             const item = e.target.closest('li[data-id]');
+            const studentCount = parseInt(item.dataset.studentCount ?? '0');
+
+            if (studentCount > 0) {
+                new bootstrap.Modal(document.getElementById('cannotDeleteModal')).show();
+                return;
+            }
+
             const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
             document.getElementById('btn-confirm-delete').onclick = () => {
                 fetch(`/groups/delete/${item.dataset.id}`, { method: 'DELETE' })
                     .then(r => r.json())
                     .then(res => {
                         modal.hide();
-                        if (res.success) {
-                            searchGroups(currentPage);
-                        } else {
-                            alert(res.message);
-                        }
+                        if (res.success) searchGroups(currentPage);
                     });
             };
             modal.show();
@@ -106,8 +150,57 @@ if (document.getElementById('groups-accordion')) {
             const page = parseInt(e.target.dataset.page);
             if (!isNaN(page)) searchGroups(page);
         }
+
+        if (e.target.classList.contains('btn-export-students')) {
+            const groupId = e.target.closest('li[data-id]').dataset.id;
+            window.location.href = `/groups/exportstudents?groupId=${groupId}`;
+        }
+
+        if (e.target.classList.contains('btn-import-students')) {
+            currentImportGroupId = e.target.closest('li[data-id]').dataset.id;
+            document.getElementById('import-students-file').value = '';
+            document.getElementById('import-students-result').classList.add('d-none');
+            new bootstrap.Modal(document.getElementById('importStudentsModal')).show();
+        }
     });
 }
+
+document.getElementById('btn-confirm-import-students')?.addEventListener('click', function () {
+    const file = document.getElementById('import-students-file')?.files[0];
+    const resultDiv = document.getElementById('import-students-result');
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('groupId', currentImportGroupId);
+    fetch('/groups/importstudents', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(res => {
+            resultDiv.classList.remove('d-none');
+            if (res.success) {
+                let html = `<div class="alert alert-success mb-0">Imported: ${res.imported} students</div>`;
+                if (res.errors?.length)
+                    html += `<ul class="text-danger small mt-2 mb-0">${res.errors.map(e => `<li>${e}</li>`).join('')}</ul>`;
+                resultDiv.innerHTML = html;
+                if (res.imported > 0) {
+                    const groupItem = document.querySelector(`li[data-id="${currentImportGroupId}"]`);
+                    if (groupItem) {
+                        const newCount = (parseInt(groupItem.dataset.studentCount) || 0) + res.imported;
+                        groupItem.dataset.studentCount = newCount;
+                        const badge = groupItem.querySelector('.badge');
+                        if (badge) badge.textContent = `${newCount} stu`;
+                        const container = groupItem.querySelector('.students-container');
+                        if (container) {
+                            fetch(`/Groups/GetStudent?groupId=${currentImportGroupId}`)
+                                .then(r => r.text())
+                                .then(html => { container.innerHTML = html; });
+                        }
+                    }
+                }
+            } else {
+                resultDiv.innerHTML = `<div class="alert alert-danger mb-0">${res.message}</div>`;
+            }
+        });
+});
 
 const addForm = document.getElementById('add-group-form');
 if (addForm) {

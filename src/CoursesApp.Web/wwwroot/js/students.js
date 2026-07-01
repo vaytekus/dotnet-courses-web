@@ -1,21 +1,25 @@
-// shared state
 let currentPage = 1;
 let debounceTimer;
+let searchAbortController = null;
 
 function searchStudents(page = 1) {
     currentPage = page;
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
+        if (searchAbortController) searchAbortController.abort();
+        searchAbortController = new AbortController();
+
         const searchInput = document.getElementById('search-input');
         const filteringByGroup = document.getElementById('filteringByGroup');
         const search = searchInput ? searchInput.value.trim() : '';
         const groupId = filteringByGroup ? filteringByGroup.value : '';
         const params = new URLSearchParams({ search, groupId, page: currentPage });
-        fetch(`/students/search?${params}`)
+        fetch(`/students/search?${params}`, { signal: searchAbortController.signal })
             .then(r => r.text())
             .then(html => {
                 document.querySelector('#students-table tbody').innerHTML = html;
-            });
+            })
+            .catch(err => { if (err.name !== 'AbortError') console.error(err); });
     }, 300);
 }
 
@@ -152,6 +156,7 @@ if (addForm) {
     }
 
     function saveStudent() {
+        saveBtn.disabled = true;
         const firstNameValue = firstName.value;
         const lastNameValue = lastName.value;
         const groupId = group.value;
@@ -164,13 +169,15 @@ if (addForm) {
             if (res.success) {
                 resetForm();
                 searchStudents(currentPage);
+            } else {
+                saveBtn.disabled = false;
             }
-        });
+        }).catch(() => { saveBtn.disabled = false; });
     }
 
     firstName.addEventListener('input', validateAddForm);
     lastName.addEventListener('input', validateAddForm);
-    group.addEventListener('input', validateAddForm);
+    group.addEventListener('change', validateAddForm);
     showFormBtn.addEventListener('click', toggleForm);
     cancelBtn.addEventListener('click', resetForm);
     saveBtn.addEventListener('click', saveStudent);

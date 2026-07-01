@@ -10,5 +10,6 @@ namespace CoursesApp.Domain.Interfaces
         void AddStudent(Student student);
         void UpdateStudent(Student student);
         void DeleteStudent(Student student);
+        Task DeleteAllByGroupAsync(Guid groupId);
     }
 }

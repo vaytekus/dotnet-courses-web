@@ -12,6 +12,7 @@ namespace CoursesApp.Infrastructure.Repositories
 
         public GroupRepository(AppDbContext context)
         {
+            ArgumentNullException.ThrowIfNull(context);
             _context = context;
         }
 
@@ -21,7 +22,7 @@ namespace CoursesApp.Infrastructure.Repositories
         }
 
         public async Task<(List<Group> Groups, int TotalCount)> GetFilteredGroupAsync(
-            string? search, Guid? courseID, GroupStudentFilter studentFilter, int page, int pageSize)
+            string? search, Guid? courseId, GroupStudentFilter studentFilter, int page, int pageSize)
         {
             var query = _context.Groups
                 .Include(g => g.Course)
@@ -35,9 +36,9 @@ namespace CoursesApp.Infrastructure.Repositories
                 query = query.Where(g => g.Name.Contains(search));
             }
 
-            if (courseID.HasValue)
+            if (courseId.HasValue)
             {
-                query = query.Where(g => g.CourseId == courseID.Value);
+                query = query.Where(g => g.CourseId == courseId.Value);
             }
 
             query = studentFilter switch
@@ -56,6 +57,18 @@ namespace CoursesApp.Infrastructure.Repositories
                 .ToListAsync();
 
             return (groups, total);
+        }
+
+        public async Task UnassignTeacherAsync(Guid teacherId)
+        {
+            var groups = await _context.Groups
+                .Where(g => g.TeacherId == teacherId)
+                .ToListAsync();
+
+            foreach (var group in groups)
+            {
+                group.TeacherId = null;
+            }
         }
 
         public Task<Group?> GetByIdAsync(Guid groupId)

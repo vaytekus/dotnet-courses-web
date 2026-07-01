@@ -11,6 +11,7 @@ namespace CoursesApp.Infrastructure.Repositories
 
         public TeacherRepository(AppDbContext context)
         {
+            ArgumentNullException.ThrowIfNull(context);
             _context = context;
         }
         
