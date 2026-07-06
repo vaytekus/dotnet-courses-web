@@ -79,7 +79,7 @@ if (document.getElementById('groups-accordion')) {
                 const modal = new bootstrap.Modal(document.getElementById('deleteStudentModal'));
                 document.getElementById('delete-student-name').textContent = `${firstName} ${lastName}`;
                 document.getElementById('btn-confirm-delete-student').onclick = () => {
-                    fetch(`/groups/deletestudent?id=${studentRow.dataset.id}`, { method: 'POST' })
+                    fetch(`/students/delete/${studentRow.dataset.id}`, { method: 'DELETE' })
                         .then(r => r.json())
                         .then(res => {
                             modal.hide();
@@ -134,7 +134,7 @@ if (document.getElementById('groups-accordion')) {
             const item = e.target.closest('li[data-id]');
             const modal = new bootstrap.Modal(document.getElementById('clearStudentsModal'));
             document.getElementById('btn-confirm-clear').onclick = () => {
-                fetch(`/groups/clearstudents?id=${item.dataset.id}`, { method: 'POST' })
+                fetch(`/students/clearstudents?groupId=${item.dataset.id}`, { method: 'POST' })
                     .then(r => r.json())
                     .then(res => {
                         if (res.success) {
@@ -153,7 +153,7 @@ if (document.getElementById('groups-accordion')) {
 
         if (e.target.classList.contains('btn-export-students')) {
             const groupId = e.target.closest('li[data-id]').dataset.id;
-            window.location.href = `/groups/exportstudents?groupId=${groupId}`;
+            window.location.href = `/students/exportstudents?groupId=${groupId}`;
         }
 
         if (e.target.classList.contains('btn-import-students')) {
@@ -172,7 +172,7 @@ document.getElementById('btn-confirm-import-students')?.addEventListener('click'
     const formData = new FormData();
     formData.append('file', file);
     formData.append('groupId', currentImportGroupId);
-    fetch('/groups/importstudents', { method: 'POST', body: formData })
+    fetch('/students/importstudents', { method: 'POST', body: formData })
         .then(r => r.json())
         .then(res => {
             resultDiv.classList.remove('d-none');
@@ -190,7 +190,7 @@ document.getElementById('btn-confirm-import-students')?.addEventListener('click'
                         if (badge) badge.textContent = `${newCount} stu`;
                         const container = groupItem.querySelector('.students-container');
                         if (container) {
-                            fetch(`/Groups/GetStudent?groupId=${currentImportGroupId}`)
+                            fetch(`/students/getstudent?groupId=${currentImportGroupId}`)
                                 .then(r => r.text())
                                 .then(html => { container.innerHTML = html; });
                         }

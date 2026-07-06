@@ -17,7 +17,7 @@ document.addEventListener('show.bs.collapse', function (e) {
 
     bootstrap.Collapse.getOrCreateInstance(collapseEl).show();
 
-    fetch(`/Groups/GetStudent?groupId=${groupId}`)
+    fetch(`/students/getstudent?groupId=${groupId}`)
         .then(res => res.text())
         .then(html => { container.innerHTML = html; });
 });

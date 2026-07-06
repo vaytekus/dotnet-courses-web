@@ -10,9 +10,16 @@ namespace CoursesApp.Web.Extensions
             IConfiguration configuration)
         {
             services.Configure<PaginationOptions>(configuration.GetSection("Pagination"));
+            services.Configure<EmailOptions>(configuration.GetSection("Email"));
+            services.AddMemoryCache();
+            services.AddScoped<IEmailService, EmailService>();
+            services.AddScoped<ICourseService, CourseService>();
             services.AddScoped<IGroupService, GroupService>();
             services.AddScoped<ITeacherService, TeacherService>();
             services.AddScoped<IStudentService, StudentService>();
+            services.AddSingleton<ICsvLineParser, NumberedCsvLineParser>();
+            services.AddSingleton<ICsvLineParser, SimpleCsvLineParser>();
+            services.AddScoped<IStudentCsvService, StudentCsvService>();
             return services;
         }
     }

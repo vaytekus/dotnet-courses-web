@@ -1,5 +1,6 @@
 using CoursesApp.Domain.Entities;
 using CoursesApp.Domain.Interfaces;
+using CoursesApp.Domain.Interfaces.Repositories;
 using CoursesApp.Web.DTOs;
 using CoursesApp.Web.Services;
 using Microsoft.Extensions.Logging;
@@ -77,15 +78,13 @@ namespace CoursesApp.Tests.Services
         }
 
         [Fact]
-        public async Task DeleteTeacherAsync_UnassignsFromGroupsBeforeDelete_WhenTeacherExists()
+        public async Task DeleteTeacherAsync_DeletesAndSaves_WhenTeacherExists()
         {
             var teacher = new Teacher { Id = Guid.NewGuid(), FirstName = "A", LastName = "B" };
             _teachers.Setup(r => r.GetTeacherByIdAsync(teacher.Id)).ReturnsAsync(teacher);
-            _groups.Setup(r => r.UnassignTeacherAsync(teacher.Id)).Returns(Task.CompletedTask);
 
             await _sut.DeleteTeacherAsync(teacher.Id);
 
-            _groups.Verify(r => r.UnassignTeacherAsync(teacher.Id), Times.Once);
             _teachers.Verify(r => r.DeleteTeacher(teacher), Times.Once);
             _uow.Verify(u => u.SaveAsync(), Times.Once);
         }

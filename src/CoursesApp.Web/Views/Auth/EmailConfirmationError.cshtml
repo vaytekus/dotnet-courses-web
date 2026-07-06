@@ -1,0 +1,14 @@
+@{
+    ViewData["Title"] = "Confirmation error";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 text-center">
+        <h2 class="text-danger">Confirmation failed</h2>
+        <p class="text-muted mt-3">
+            The confirmation link is invalid or has expired.<br />
+            Please register again.
+        </p>
+        <a asp-action="Register" asp-controller="Auth" class="btn btn-primary mt-3">Register</a>
+    </div>
+</div>

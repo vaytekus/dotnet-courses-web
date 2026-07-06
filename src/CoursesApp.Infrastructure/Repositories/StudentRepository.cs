@@ -1,5 +1,6 @@
 using CoursesApp.Domain.Entities;
 using CoursesApp.Domain.Interfaces;
+using CoursesApp.Domain.Interfaces.Repositories;
 using CoursesApp.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,15 +16,15 @@ namespace CoursesApp.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<List<Student>> GetStudentsByGroupAsync(Guid groupId)
+        public async Task<List<Student>> GetStudentsByGroupAsync(Guid groupId, CancellationToken ct = default)
         {
             return await _context.Students
                 .Where(s => s.GroupId == groupId)
-                .ToListAsync();
+                .ToListAsync(ct);
         }
 
         public async Task<(List<Student>, int TotalCount)> GetFilteredStudentAsync(
-            string? searchQuery, Guid? groupId, int page, int pageSize)
+            string? searchQuery, Guid? groupId, int page, int pageSize, CancellationToken ct = default)
         {
             var query = _context.Students
                 .Include(s => s.Group)
@@ -42,18 +43,18 @@ namespace CoursesApp.Infrastructure.Repositories
                 query = query.Where(s => s.GroupId == groupId);
             }
             
-            var total = await query.CountAsync();
+            var total = await query.CountAsync(ct);
             var students = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToListAsync(ct);
             
             return (students, total);
         }
         
-        public async Task<Student?> GetStudentByIdAsync(Guid id)
+        public async Task<Student?> GetStudentByIdAsync(Guid id, CancellationToken ct = default)
         {
-            return await _context.Students.FindAsync(id);
+            return await _context.Students.FindAsync(id, ct);
         }
         
         public void AddStudent(Student student)
@@ -71,11 +72,11 @@ namespace CoursesApp.Infrastructure.Repositories
             _context.Students.Remove(student);
         }
 
-        public async Task DeleteAllByGroupAsync(Guid groupId)
+        public async Task DeleteAllByGroupAsync(Guid groupId, CancellationToken ct = default)
         {
             var students = await _context.Students
                 .Where(s => s.GroupId == groupId)
-                .ToListAsync();
+                .ToListAsync(ct);
             
             _context.Students.RemoveRange(students);
         }

@@ -7,7 +7,6 @@ namespace CoursesApp.Web.Controllers
 {
     public class GroupsController(
         IGroupService groupService,
-        IStudentService studentService,
         IConfiguration configuration,
         ILogger<GroupsController> logger)
         : Controller
@@ -15,10 +14,10 @@ namespace CoursesApp.Web.Controllers
         private const int DefaultPageSize = 10;
         private readonly int _pageSize = configuration.GetValue("Pagination:PageSize", DefaultPageSize);
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(CancellationToken ct)
         {
             logger.LogInformation("Loading groups page");
-            var model = await groupService.GetPageAsync(null, null, GroupStudentFilter.All, 1, _pageSize);
+            var model = await groupService.GetPageAsync(null, null, GroupStudentFilter.All, 1, _pageSize, ct);
             return View(model);
         }
 
@@ -27,15 +26,16 @@ namespace CoursesApp.Web.Controllers
             string? search,
             Guid? courseId,
             GroupStudentFilter filter = GroupStudentFilter.All,
-            int page = 1)
+            int page = 1,
+            CancellationToken ct = default)
         {
             logger.LogInformation("Searching groups: search={Search}, courseId={CourseId}, filter={Filter}, page={Page}", search, courseId, filter, page);
-            var model = await groupService.GetPageAsync(search, courseId, filter, page, _pageSize);
+            var model = await groupService.GetPageAsync(search, courseId, filter, page, _pageSize, ct);
             return PartialView("_GroupsBody", model);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Add([FromBody] GroupCreateDto? dto)
+        public async Task<IActionResult> Add([FromBody] GroupCreateDto? dto,CancellationToken ct)
         {
             if (dto is null)
             {
@@ -43,7 +43,7 @@ namespace CoursesApp.Web.Controllers
             }
             try
             {
-                await groupService.AddGroupAsync(dto);
+                await groupService.AddGroupAsync(dto, ct);
                 return Json(new { success = true });
             }
             catch (Exception ex)
@@ -54,7 +54,7 @@ namespace CoursesApp.Web.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Edit([FromBody] GroupEditDto? dto)
+        public async Task<IActionResult> Edit([FromBody] GroupEditDto? dto, CancellationToken ct)
         {
             if (dto is null)
             {
@@ -62,7 +62,7 @@ namespace CoursesApp.Web.Controllers
             }
             try
             {
-                await groupService.UpdateGroupAsync(dto);
+                await groupService.UpdateGroupAsync(dto, ct);
                 return Json(new { success = true });
             }
             catch (KeyNotFoundException ex)
@@ -78,11 +78,11 @@ namespace CoursesApp.Web.Controllers
         }
 
         [HttpDelete]
-        public async Task<IActionResult> Delete(Guid id)
+        public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
         {
             try
             {
-                var deleted = await groupService.DeleteGroupAsync(id);
+                var deleted = await groupService.DeleteGroupAsync(id, ct);
                 return Json(new { success = deleted });
             }
             catch (KeyNotFoundException ex)
@@ -94,87 +94,6 @@ namespace CoursesApp.Web.Controllers
             {
                 logger.LogError(ex, "Error deleting group {Id}", id);
                 return Json(new { success = false, message = "Failed to delete group" });
-            }
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> ClearStudents(Guid id)
-        {
-            try
-            {
-                await studentService.ClearAllStudentsAsync(id);
-                return Json(new { success = true });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                logger.LogWarning(ex, "Group {Id} not found during clear students", id);
-                return Json(new { success = false, message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error clearing students from group {Id}", id);
-                return Json(new { success = false, message = "Failed to clear students" });
-            }
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> DeleteStudent(Guid id)
-        {
-            try
-            {
-                await studentService.DeleteStudentAsync(id);
-                return Json(new { success = true });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                logger.LogWarning(ex, "Student {Id} not found during delete from group", id);
-                return Json(new { success = false, message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error deleting student {Id} from group", id);
-                return Json(new { success = false, message = "Failed to delete student" });
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetStudent(Guid groupId)
-        {
-            logger.LogInformation("Loading students for group {GroupId}", groupId);
-            var students = await studentService.GetStudentsByGroupAsync(groupId);
-            return PartialView("_StudentsBody", students);
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> ExportStudents(Guid groupId)
-        {
-            logger.LogInformation("Exporting students for group {GroupId}", groupId);
-            var bytes = await studentService.ExportGroupCsvAsync(groupId);
-            return File(bytes, "text/csv", "students.csv");
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> ImportStudents(IFormFile? file, Guid groupId)
-        {
-            if (file is null || file.Length == 0)
-            {
-                return Json(new
-                {
-                    success = false,
-                    message = "No file provided"
-                });
-            }
-
-            try
-            {
-                await using var stream = file.OpenReadStream();
-                var result = await studentService.ImportGroupCsvAsync(stream, groupId);
-                return Json(new {success = true, imported = result.ImportedCount, errors = result.Errors });
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Error importing students for group {GroupId}", groupId);
-                return Json(new { success = false, message = "Failed to import students" });
             }
         }
     }

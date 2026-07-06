@@ -1,4 +1,4 @@
-namespace CoursesApp.Domain.Interfaces
+namespace CoursesApp.Domain.Interfaces.Repositories
 {
     public interface IUnitOfWork : IDisposable
     {
@@ -6,6 +6,6 @@ namespace CoursesApp.Domain.Interfaces
         IGroupRepository Groups { get; }
         ITeacherRepository Teachers { get; }
         IStudentRepository Students { get; }
-        Task SaveAsync();
+        Task SaveAsync(CancellationToken ct = default);
     }
 }

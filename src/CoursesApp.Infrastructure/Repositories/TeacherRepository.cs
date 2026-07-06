@@ -1,5 +1,6 @@
 using CoursesApp.Domain.Entities;
 using CoursesApp.Domain.Interfaces;
+using CoursesApp.Domain.Interfaces.Repositories;
 using CoursesApp.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,12 +16,12 @@ namespace CoursesApp.Infrastructure.Repositories
             _context = context;
         }
         
-        public async Task<List<Teacher>> GetAllTeachersAsync()
+        public async Task<List<Teacher>> GetAllTeachersAsync(CancellationToken ct = default)
         {
-            return await _context.Teachers.ToListAsync();
+            return await _context.Teachers.ToListAsync(ct);
         }
 
-        public async Task<(List<Teacher>, int TotalCount)> GetFilteredTeachersAsync(string? search, int page, int pageSize)
+        public async Task<(List<Teacher>, int TotalCount)> GetFilteredTeachersAsync(string? search, int page, int pageSize, CancellationToken ct = default)
         {
             var query = _context.Teachers
                 .AsQueryable();
@@ -31,18 +32,18 @@ namespace CoursesApp.Infrastructure.Repositories
                                          s.LastName.Contains(search));
             }
             
-            var total = await query.CountAsync();
+            var total = await query.CountAsync(ct);
             var teachers = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToListAsync(ct);
 
             return (teachers, total);
         }
 
-        public async Task<Teacher?> GetTeacherByIdAsync(Guid id)
+        public async Task<Teacher?> GetTeacherByIdAsync(Guid id, CancellationToken ct = default)
         {
-            return await _context.Teachers.FindAsync(id);
+            return await _context.Teachers.FindAsync(id, ct);
         }
         
         public void AddTeacher(Teacher teacher)

@@ -1,11 +1,15 @@
+using System.Threading.RateLimiting;
 using CoursesApp.Infrastructure.Data;
 using CoursesApp.Infrastructure.Extensions;
 using CoursesApp.Web.Extensions;
+using CoursesApp.Web.Options;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//Logger initialization
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .CreateLogger();
@@ -14,20 +18,44 @@ builder.Host.UseSerilog();
 
 try
 {
-    // Add services to the container.
-    builder.Services.AddControllersWithViews()
-        .AddRazorRuntimeCompilation();
+    builder.Services.AddControllersWithViews(options =>
+    {
+        var policy = new AuthorizationPolicyBuilder()
+            .RequireAuthenticatedUser()
+            .Build();
+        options.Filters.Add(new AuthorizeFilter(policy));
+    })
+    .AddRazorRuntimeCompilation();
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddWebServices(builder.Configuration);
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.AddFixedWindowLimiter(RateLimiterPolicyNames.Fixed, limiter =>
+        {
+            limiter.Window = TimeSpan.FromMinutes(1);
+            limiter.PermitLimit = 100;
+            limiter.QueueLimit = 10;
+            limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        });
+
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    });
     builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
-    
+
+    builder.Services.ConfigureApplicationCookie(options =>
+    {
+        options.LoginPath = "/auth/login";
+        options.LogoutPath = "/auth/logout";
+        options.AccessDeniedPath = "/auth/login";
+        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.SlidingExpiration = true;
+    });
+
     var app = builder.Build();
 
-    // Configure the HTTP request pipeline.
     if (!app.Environment.IsDevelopment())
     {
         app.UseExceptionHandler("/Home/Error");
-        // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
         app.UseHsts();
     }
 
@@ -40,14 +68,17 @@ try
     app.UseHttpsRedirection();
     app.UseRouting();
 
+    app.UseAuthentication();
     app.UseAuthorization();
+    app.UseRateLimiter();
 
     app.MapStaticAssets();
 
     app.MapControllerRoute(
             name: "default",
-            pattern: "{controller=Home}/{action=Index}/{id?}")
-        .WithStaticAssets();
+            pattern: "{controller=Courses}/{action=Index}/{id?}")
+        .WithStaticAssets()
+        .RequireRateLimiting(RateLimiterPolicyNames.Fixed);
 
     app.Run();
 }
@@ -55,6 +86,7 @@ catch (Exception ex)
 {
     Log.Fatal(ex, "Unhandled exception");
 }
-finally{
+finally
+{
     Log.CloseAndFlush();
 }

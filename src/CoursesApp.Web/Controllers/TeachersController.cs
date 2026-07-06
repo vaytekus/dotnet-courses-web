@@ -6,6 +6,7 @@ namespace CoursesApp.Web.Controllers
 {
     public class TeachersController(
         ITeacherService teacherService,
+        IGroupService groupService,
         IConfiguration configuration,
         ILogger<TeachersController> logger)
         : Controller
@@ -13,23 +14,23 @@ namespace CoursesApp.Web.Controllers
         private const int DefaultPageSize = 10;
         private readonly int _pageSize = configuration.GetValue("Pagination:PageSize", DefaultPageSize);
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(CancellationToken ct)
         {
             logger.LogInformation("Loading teachers page");
-            var model = await teacherService.GetPageAsync(null, 1, _pageSize);
+            var model = await teacherService.GetPageAsync(null, 1, _pageSize, ct);
             return View(model);
         }
-        
+
         [HttpGet]
-        public async Task<IActionResult> Search(string? search, int page = 1)
+        public async Task<IActionResult> Search(string? search, int page = 1, CancellationToken ct = default)
         {
             logger.LogInformation("Searching teachers: search={Search}, page={Page}", search, page);
-            var model = await teacherService.GetPageAsync(search, page, _pageSize);
+            var model = await teacherService.GetPageAsync(search, page, _pageSize, ct);
             return PartialView("_TeachersTableBody", model);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Add([FromBody] TeacherDto? dto)
+        public async Task<IActionResult> Add([FromBody] TeacherDto? dto, CancellationToken ct)
         {
             if (dto is null)
             {
@@ -37,7 +38,7 @@ namespace CoursesApp.Web.Controllers
             }
             try
             {
-                await teacherService.AddTeacherAsync(dto);
+                await teacherService.AddTeacherAsync(dto, ct);
                 return Json(new { success = true });
             }
             catch (Exception ex)
@@ -47,13 +48,12 @@ namespace CoursesApp.Web.Controllers
             }
         }
 
-
         [HttpPost]
-        public async Task<IActionResult> Edit([FromBody] TeacherEditDto dto)
+        public async Task<IActionResult> Edit([FromBody] TeacherEditDto dto, CancellationToken ct)
         {
             try
             {
-                await teacherService.UpdateTeacherAsync(dto);
+                await teacherService.UpdateTeacherAsync(dto, ct);
                 return Json(new { success = true });
             }
             catch (KeyNotFoundException ex)
@@ -69,11 +69,13 @@ namespace CoursesApp.Web.Controllers
         }
 
         [HttpDelete]
-        public async Task<IActionResult> Delete(Guid id)
+        public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
         {
             try
             {
-                await teacherService.DeleteTeacherAsync(id);
+                await teacherService.ValidateExistAsync(id, ct);
+                await groupService.UnassignTeacherAsync(id, ct);
+                await teacherService.DeleteTeacherAsync(id, ct);
                 return Json(new { success = true });
             }
             catch (KeyNotFoundException ex)

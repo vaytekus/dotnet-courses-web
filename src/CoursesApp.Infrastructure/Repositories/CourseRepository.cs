@@ -1,5 +1,6 @@
 using CoursesApp.Domain.Entities;
 using CoursesApp.Domain.Interfaces;
+using CoursesApp.Domain.Interfaces.Repositories;
 using CoursesApp.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,26 +16,27 @@ namespace CoursesApp.Infrastructure.Repositories
             _context = context;
         }
         
-        public async Task<List<Course>> GetAllCoursesAsync()
+        public async Task<List<Course>> GetAllCoursesAsync(CancellationToken ct = default)
         {
-            return await _context.Courses.ToListAsync();
+            return await _context.Courses
+                .ToListAsync(ct);
         }
 
-        public async Task<List<Course>> GetAllCoursesWithDetailsAsync()
+        public async Task<List<Course>> GetAllCoursesWithDetailsAsync(CancellationToken ct = default)
         {
             return await _context.Courses
                 .Include(c => c.Groups)
                 .AsSplitQuery()
-                .ToListAsync();
+                .ToListAsync(ct);
         }
 
-        public async Task<List<Course>> SearchCoursesAsync(string query)
+        public async Task<List<Course>> SearchCoursesAsync(string query, CancellationToken ct = default)
         {
             return await _context.Courses
                 .Include(c => c.Groups)
                 .Where(c => c.Name.ToLower().Contains(query.ToLower()))
                 .AsSplitQuery()
-                .ToListAsync();
+                .ToListAsync(ct);
         }
     }
 }

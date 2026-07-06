@@ -1,4 +1,5 @@
 using CoursesApp.Domain.Interfaces;
+using CoursesApp.Domain.Interfaces.Repositories;
 
 namespace CoursesApp.Infrastructure.Data
 {
@@ -30,9 +31,9 @@ namespace CoursesApp.Infrastructure.Data
             Students = students;
         }
 
-        public async Task SaveAsync()
+        public async Task SaveAsync(CancellationToken ct = default)
         {
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(ct);
         }
 
         public void Dispose()

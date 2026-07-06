@@ -1,31 +1,39 @@
 # dotnet-courses-web
 
-ASP.NET Core MVC web application for managing courses, groups, students and teachers built with Entity Framework Core and Bootstrap.
+ASP.NET Core MVC web application for managing courses, groups, students and teachers.
 
 ## Features
 
 - Browse courses with expandable groups via accordion
-- View students per group loaded dynamically via AJAX
-- Inline editing of students and teachers (edit/save/cancel without page reload)
-- Delete students and teachers with confirmation dialog
-- Filter students by group
-- SQL Server database with EF Core migrations and seed data
+- View, add, edit, delete students and teachers (inline, without page reload)
+- Filter and search groups, students, teachers with server-side pagination
+- Import / export students per group as CSV
+- ASP.NET Core Identity authentication (register, login, logout)
+- Email confirmation on registration via SMTP (Gmail)
+- Rate limiting (100 req/min per route)
+- Server-side caching with IMemoryCache
+- CancellationToken propagation through all layers
 
 ## Stack
 
 - .NET 10 / C#
 - ASP.NET Core MVC
 - Entity Framework Core + SQL Server
+- ASP.NET Core Identity
+- MailKit (SMTP)
 - Serilog
 - Bootstrap 5
+- xUnit + Moq (unit tests)
 
 ## Project Structure
 
 ```
 src/
-├── CoursesApp.Domain/         # Entities, interfaces
-├── CoursesApp.Infrastructure/ # EF Core, repositories, migrations
-└── CoursesApp.Web/            # Controllers, views, services
+├── CoursesApp.Domain/         # Entities, repository interfaces
+├── CoursesApp.Infrastructure/ # EF Core, repositories, migrations, seeder
+└── CoursesApp.Web/            # Controllers, views, services, DTOs, mappers
+tests/
+└── CoursesApp.Tests/          # Unit tests for services
 ```
 
 ## Database
@@ -38,27 +46,31 @@ docker-compose up -d
 
 ## Configuration
 
-Fill in connection string in `src/CoursesApp.Web/appsettings.Development.json`:
+Copy `appsettings.Development.example.json` to `appsettings.Development.json` and fill in your values:
+
+```bash
+cp src/CoursesApp.Web/appsettings.Development.example.json src/CoursesApp.Web/appsettings.Development.json
+```
+
+Edit the file:
 
 ```json
 {
   "ConnectionStrings": {
     "DefaultConnection": "Server=localhost;Database=CoursesDb;User Id=sa;Password=YOUR_PASSWORD;TrustServerCertificate=True;"
   },
-  "Serilog": {
-    "MinimumLevel": {
-      "Default": "Debug",
-      "Override": {
-        "Microsoft": "Warning",
-        "Microsoft.EntityFrameworkCore": "Information"
-      }
-    },
-    "WriteTo": [
-      { "Name": "Console" }
-    ]
+  "Email": {
+    "Host": "smtp.gmail.com",
+    "Port": 587,
+    "FromEmail": "your@gmail.com",
+    "FromName": "CoursesApp",
+    "UserName": "your@gmail.com",
+    "Password": "YOUR_GMAIL_APP_PASSWORD"
   }
 }
 ```
+
+> For Gmail, generate an **App Password** at Google Account → Security → 2-Step Verification → App passwords.
 
 ## Migrations
 
@@ -72,4 +84,10 @@ dotnet ef database update --project CoursesApp.Infrastructure --startup-project 
 
 ```bash
 dotnet run --project src/CoursesApp.Web
+```
+
+## Tests
+
+```bash
+dotnet test tests/CoursesApp.Tests
 ```

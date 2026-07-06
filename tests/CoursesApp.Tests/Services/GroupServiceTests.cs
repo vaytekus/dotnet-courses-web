@@ -1,7 +1,8 @@
 using CoursesApp.Domain.Entities;
-using CoursesApp.Domain.Interfaces;
+using CoursesApp.Domain.Interfaces.Repositories;
 using CoursesApp.Web.DTOs;
 using CoursesApp.Web.Services;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -19,8 +20,9 @@ namespace CoursesApp.Tests.Services
             _uow = new Mock<IUnitOfWork>();
             _groups = new Mock<IGroupRepository>();
             var logger = new Mock<ILogger<GroupService>>();
+            var cache = new Mock<IMemoryCache>();
             _uow.Setup(u => u.Groups).Returns(_groups.Object);
-            _sut = new GroupService(_uow.Object, logger.Object);
+            _sut = new GroupService(_uow.Object, cache.Object, logger.Object);
         }
 
         [Fact]
