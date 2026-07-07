@@ -46,13 +46,7 @@ docker-compose up -d
 
 ## Configuration
 
-Copy `appsettings.Development.example.json` to `appsettings.Development.json` and fill in your values:
-
-```bash
-cp src/CoursesApp.Web/appsettings.Development.example.json src/CoursesApp.Web/appsettings.Development.json
-```
-
-Edit the file:
+Create `src/CoursesApp.Web/appsettings.Development.json` and fill in your values:
 
 ```json
 {
@@ -72,11 +66,10 @@ Edit the file:
 
 > For Gmail, generate an **App Password** at Google Account → Security → 2-Step Verification → App passwords.
 
-## Migrations
+## Apply migrations
 
 ```bash
 cd src
-dotnet ef migrations add InitialCreate --project CoursesApp.Infrastructure --startup-project CoursesApp.Web
 dotnet ef database update --project CoursesApp.Infrastructure --startup-project CoursesApp.Web
 ```
 
