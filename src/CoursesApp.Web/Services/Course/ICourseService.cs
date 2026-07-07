@@ -1,9 +1,6 @@
-using CoursesApp.Domain.Entities;
+namespace CoursesApp.Web.Services;
 
-namespace CoursesApp.Web.Services
+public interface ICourseService
 {
-    public interface ICourseService
-    {
-        Task<List<Course>> GetAllWithDetailsAsync(CancellationToken ct = default);
-    }
+    Task<List<Course>> GetAllWithDetailsAsync(CancellationToken ct = default);
 }

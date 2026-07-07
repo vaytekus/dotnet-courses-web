@@ -21,3 +21,30 @@ document.addEventListener('show.bs.collapse', function (e) {
         .then(res => res.text())
         .then(html => { container.innerHTML = html; });
 });
+
+function debounce(fn, delay = 300) {
+    let timer;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), delay);
+    };
+}
+
+function apiCall(url, method = 'POST', data = null) {
+    const options = { method };
+    if (data !== null) {
+        options.headers = { 'Content-Type': 'application/json' };
+        options.body = JSON.stringify(data);
+    }
+    return fetch(url, options).then(r => r.json());
+}
+
+function enterEditMode(el) {
+    el.querySelectorAll('.view-mode').forEach(e => e.classList.add('d-none'));
+    el.querySelectorAll('.edit-mode').forEach(e => e.classList.remove('d-none'));
+}
+
+function exitEditMode(el) {
+    el.querySelectorAll('.view-mode').forEach(e => e.classList.remove('d-none'));
+    el.querySelectorAll('.edit-mode').forEach(e => e.classList.add('d-none'));
+}

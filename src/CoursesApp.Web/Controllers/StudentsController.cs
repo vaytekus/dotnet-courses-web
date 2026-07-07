@@ -1,154 +1,112 @@
-using CoursesApp.Web.DTOs;
-using CoursesApp.Web.Services;
-using Microsoft.AspNetCore.Mvc;
+namespace CoursesApp.Web.Controllers;
 
-namespace CoursesApp.Web.Controllers
+public class StudentsController(
+    IStudentService studentService,
+    IGroupService groupService,
+    ICsvService csvService,
+    IConfiguration configuration,
+    ILogger<StudentsController> logger) : ApiControllerBase(logger, configuration)
 {
-    public class StudentsController(
-        IStudentService studentService,
-        IStudentCsvService studentCsvService,
-        IConfiguration configuration,
-        ILogger<StudentsController> logger)
-        : Controller
+    private const string _csvContentType = "text/csv";
+    private const string _csvFileName = "students.csv";
+
+    public async Task<IActionResult> Index(CancellationToken ct)
     {
-        private const int DefaultPageSize = 10;
-        private const string _csvContentType = "text/csv";
-        private const string _csvFileName = "students.csv";
-        private readonly int _pageSize = configuration.GetValue("Pagination:PageSize", DefaultPageSize);
+        logger.LogInformation("Loading students page");
+        var model = await BuildViewModelAsync(null, null, 1, ct);
+        return View(model);
+    }
 
-        public async Task<IActionResult> Index(CancellationToken ct)
+    [HttpPost]
+    public async Task<IActionResult> Add([FromBody] StudentDto? dto, CancellationToken ct)
+    {
+        if (dto is null)
         {
-            logger.LogInformation("Loading students page");
-            var model = await studentService.GetPageAsync(null, null, 1, _pageSize, ct);
-            return View(model);
+            return BadRequest("Invalid data");
+        }
+        
+        return await ExecuteAsync(() => studentService.AddStudentAsync(dto, ct), "Error adding student");
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Search(string? search, Guid? groupId, int page = 1, CancellationToken ct = default)
+    {
+        logger.LogInformation("Searching students: search={Search}, groupId={GroupId}, page={Page}", search, groupId, page);
+        var model = await BuildViewModelAsync(search, groupId, page, ct);
+        return PartialView("_StudentsTableBody", model);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Edit([FromBody] StudentEditDto dto, CancellationToken ct)
+    {
+        return await ExecuteAsync(() => studentService.UpdateStudentAsync(dto, ct), "Error updating student"); 
+    }
+
+    [HttpDelete]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        return await ExecuteAsync(() => studentService.DeleteStudentAsync(id, ct), "Error deleting student");
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ClearStudents(Guid groupId, CancellationToken ct)
+    {
+        return await ExecuteAsync(() => studentService.ClearAllStudentsAsync(groupId, ct), "Error clearing students");
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetStudent(Guid groupId, CancellationToken ct)
+    {
+        logger.LogInformation("Loading students for group {GroupId}", groupId);
+        var students = await studentService.GetStudentsByGroupAsync(groupId, ct);
+        return PartialView("~/Views/Groups/_StudentsBody.cshtml", students);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ExportStudents(Guid groupId, CancellationToken ct)
+    {
+        logger.LogInformation("Exporting students for group {GroupId}", groupId);
+        var bytes = await csvService.ExportGroupCsvAsync(groupId, ct);
+        return File(bytes, _csvContentType, _csvFileName);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ImportStudents(IFormFile? file, Guid groupId, CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return Json(new
+            {
+                success = false,
+                message = "No file provided"
+            });
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Add([FromBody] StudentDto? dto, CancellationToken ct)
+        try
         {
-            if (dto is null)
-            {
-                return BadRequest("Invalid data");
-            }
-            try
-            {
-                await studentService.AddStudentAsync(dto, ct);
-                return Json(new { success = true });
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error adding student");
-                return Json(new { success = false, message = "Failed to add student" });
-            }
+            await using var stream = file.OpenReadStream();
+            var result = await csvService.ImportGroupCsvAsync(stream, groupId, ct);
+            return Json(new { success = true, imported = result.ImportedCount, errors = result.Errors });
         }
-
-        [HttpGet]
-        public async Task<IActionResult> Search(string? search, Guid? groupId, int page = 1, CancellationToken ct = default)
+        catch (Exception e)
         {
-            logger.LogInformation("Searching students: search={Search}, groupId={GroupId}, page={Page}", search, groupId, page);
-            var model = await studentService.GetPageAsync(search, groupId, page, _pageSize, ct);
-            return PartialView("_StudentsTableBody", model);
+            logger.LogError(e, "Error importing students for group {GroupId}", groupId);
+            return Json(new { success = false, message = "Failed to import students" });
         }
+    }
 
-        [HttpPost]
-        public async Task<IActionResult> Edit([FromBody] StudentEditDto dto, CancellationToken ct)
+    private async Task<StudentsIndexViewModel> BuildViewModelAsync(string? search, Guid? groupId, int page, CancellationToken ct = default)
+    {
+        var (students, total) = await studentService.GetPageAsync(search, groupId, page, PageSize, ct);
+        var groups = await groupService.GetAllSelectAsync(ct);
+        
+        return new StudentsIndexViewModel
         {
-            try
-            {
-                await studentService.UpdateStudentAsync(dto, ct);
-                return Json(new { success = true });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                logger.LogWarning(ex, "Student not found during edit");
-                return Json(new { success = false, message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error updating student");
-                return Json(new { success = false, message = "Failed to update student" });
-            }
-        }
-
-        [HttpDelete]
-        public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
-        {
-            try
-            {
-                await studentService.DeleteStudentAsync(id, ct);
-                return Json(new { success = true });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                logger.LogWarning(ex, "Student {Id} not found during delete", id);
-                return Json(new { success = false, message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error deleting student {Id}", id);
-                return Json(new { success = false, message = "Failed to delete student" });
-            }
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> ClearStudents(Guid groupId, CancellationToken ct)
-        {
-            try
-            {
-                await studentService.ClearAllStudentsAsync(groupId, ct);
-                return Json(new { success = true });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                logger.LogWarning(ex, "Group {Id} not found during clear students", groupId);
-                return Json(new { success = false, message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error clearing students from group {Id}", groupId);
-                return Json(new { success = false, message = "Failed to clear students" });
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetStudent(Guid groupId, CancellationToken ct)
-        {
-            logger.LogInformation("Loading students for group {GroupId}", groupId);
-            var students = await studentService.GetStudentsByGroupAsync(groupId, ct);
-            return PartialView("~/Views/Groups/_StudentsBody.cshtml", students);
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> ExportStudents(Guid groupId, CancellationToken ct)
-        {
-            logger.LogInformation("Exporting students for group {GroupId}", groupId);
-            var bytes = await studentCsvService.ExportGroupCsvAsync(groupId, ct);
-            return File(bytes, _csvContentType, _csvFileName);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> ImportStudents(IFormFile? file, Guid groupId, CancellationToken ct)
-        {
-            if (file is null || file.Length == 0)
-            {
-                return Json(new
-                {
-                    success = false,
-                    message = "No file provided"
-                });
-            }
-
-            try
-            {
-                await using var stream = file.OpenReadStream();
-                var result = await studentCsvService.ImportGroupCsvAsync(stream, groupId, ct);
-                return Json(new { success = true, imported = result.ImportedCount, errors = result.Errors });
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Error importing students for group {GroupId}", groupId);
-                return Json(new { success = false, message = "Failed to import students" });
-            }
-        }
+            Students = students,
+            Groups = groups,
+            Page = page,
+            PageSize = PageSize,
+            TotalCount = total
+        };
     }
 }

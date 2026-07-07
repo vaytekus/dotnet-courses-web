@@ -1,8 +1,7 @@
-namespace CoursesApp.Web.DTOs
+namespace CoursesApp.Web.DTOs;
+
+public class ImportResult
 {
-    public class ImportResult
-    {
-        public int ImportedCount { get; set; }
-        public List<string> Errors { get; set; } = new();
-    }
+    public int ImportedCount { get; set; }
+    public List<string> Errors { get; set; } = [];
 }

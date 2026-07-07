@@ -2,11 +2,15 @@ using System.Threading.RateLimiting;
 using CoursesApp.Infrastructure.Data;
 using CoursesApp.Infrastructure.Extensions;
 using CoursesApp.Web.Extensions;
-using CoursesApp.Web.Options;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Serilog;
+
+const int RateLimitWindowMinutes = 1;
+const int RateLimitPermitLimit = 100;
+const int RateLimitQueueLimit = 10;
+const int CookieExpireDays = 14;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,9 +36,9 @@ try
     {
         options.AddFixedWindowLimiter(RateLimiterPolicyNames.Fixed, limiter =>
         {
-            limiter.Window = TimeSpan.FromMinutes(1);
-            limiter.PermitLimit = 100;
-            limiter.QueueLimit = 10;
+            limiter.Window = TimeSpan.FromMinutes(RateLimitWindowMinutes);
+            limiter.PermitLimit = RateLimitPermitLimit;
+            limiter.QueueLimit = RateLimitQueueLimit;
             limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         });
 
@@ -47,7 +51,7 @@ try
         options.LoginPath = "/auth/login";
         options.LogoutPath = "/auth/logout";
         options.AccessDeniedPath = "/auth/login";
-        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.ExpireTimeSpan = TimeSpan.FromDays(CookieExpireDays);
         options.SlidingExpiration = true;
     });
 

@@ -1,21 +1,19 @@
 let currentPage = 1;
-let debounceTimer;
 let currentImportGroupId = '';
+
+const _doSearchGroups = debounce(() => {
+    const search = document.getElementById('search-input')?.value.trim() ?? '';
+    const courseId = document.getElementById('filter-course')?.value ?? '';
+    const filter = document.getElementById('filter-students')?.value ?? '0';
+    const params = new URLSearchParams({ search, courseId, filter, page: currentPage });
+    fetch(`/groups/search?${params}`)
+        .then(r => r.text())
+        .then(html => { document.querySelector('#groups-accordion').innerHTML = html; });
+});
 
 function searchGroups(page = 1) {
     currentPage = page;
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-        const search = document.getElementById('search-input')?.value.trim() ?? '';
-        const courseId = document.getElementById('filter-course')?.value ?? '';
-        const filter = document.getElementById('filter-students')?.value ?? '0';
-        const params = new URLSearchParams({ search, courseId, filter, page: currentPage });
-        fetch(`/groups/search?${params}`)
-            .then(r => r.text())
-            .then(html => {
-                document.querySelector('#groups-accordion').innerHTML = html;
-            });
-    }, 300);
+    _doSearchGroups();
 }
 
 if (document.getElementById('groups-accordion')) {
@@ -23,25 +21,19 @@ if (document.getElementById('groups-accordion')) {
 
         if (e.target.classList.contains('btn-edit')) {
             const item = e.target.closest('li[data-id]');
-            item.querySelectorAll('.view-mode').forEach(el => el.classList.add('d-none'));
-            item.querySelectorAll('.edit-mode').forEach(el => el.classList.remove('d-none'));
-
+            enterEditMode(item);
             const nameInput = item.querySelector('input[name="groupName"]');
             const teacherSelect = item.querySelector('select[name="teacherId"]');
             const saveBtn = item.querySelector('.btn-save');
-
             item.dataset.originalName = nameInput.value;
             item.dataset.originalTeacherId = teacherSelect.value;
-
             saveBtn.disabled = true;
-
             function validateEdit() {
                 const nameChanged = nameInput.value !== item.dataset.originalName;
                 const teacherChanged = teacherSelect.value !== item.dataset.originalTeacherId;
                 const nameFilled = nameInput.value.trim() !== '';
                 saveBtn.disabled = !(nameFilled && (nameChanged || teacherChanged));
             }
-
             nameInput.addEventListener('input', validateEdit);
             teacherSelect.addEventListener('change', validateEdit);
         }
@@ -50,8 +42,7 @@ if (document.getElementById('groups-accordion')) {
             const item = e.target.closest('li[data-id]');
             item.querySelector('input[name="groupName"]').value = item.dataset.originalName;
             item.querySelector('select[name="teacherId"]').value = item.dataset.originalTeacherId;
-            item.querySelectorAll('.view-mode').forEach(el => el.classList.remove('d-none'));
-            item.querySelectorAll('.edit-mode').forEach(el => el.classList.add('d-none'));
+            exitEditMode(item);
         }
 
         if (e.target.classList.contains('btn-save')) {
@@ -59,14 +50,8 @@ if (document.getElementById('groups-accordion')) {
             const id = item.dataset.id;
             const name = item.querySelector('input[name="groupName"]').value;
             const teacherId = item.querySelector('select[name="teacherId"]').value || null;
-
-            fetch('/groups/edit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, name, teacherId })
-            }).then(r => r.json()).then(res => {
-                if (res.success) searchGroups(currentPage);
-            });
+            apiCall('/groups/edit', 'POST', { id, name, teacherId })
+                .then(res => { if (res.success) searchGroups(currentPage); });
         }
 
         if (e.target.classList.contains('btn-delete')) {
@@ -79,29 +64,24 @@ if (document.getElementById('groups-accordion')) {
                 const modal = new bootstrap.Modal(document.getElementById('deleteStudentModal'));
                 document.getElementById('delete-student-name').textContent = `${firstName} ${lastName}`;
                 document.getElementById('btn-confirm-delete-student').onclick = () => {
-                    fetch(`/students/delete/${studentRow.dataset.id}`, { method: 'DELETE' })
-                        .then(r => r.json())
+                    apiCall(`/students/delete/${studentRow.dataset.id}`, 'DELETE')
                         .then(res => {
                             modal.hide();
                             if (res.success) {
                                 const groupItem = studentRow.closest('li[data-id]');
                                 studentRow.remove();
-
                                 const tbody = groupItem.querySelector('tbody');
                                 if (tbody) {
                                     tbody.querySelectorAll('tr').forEach((row, i) => {
                                         row.querySelector('td:first-child').textContent = i + 1;
                                     });
                                 }
-
                                 const newCount = parseInt(groupItem.dataset.studentCount) - 1;
                                 groupItem.dataset.studentCount = newCount;
                                 const badge = groupItem.querySelector('.badge');
                                 if (badge) badge.textContent = `${newCount} stu`;
-
                                 if (newCount === 0) {
-                                    const accordionBody = groupItem.querySelector('.accordion-body');
-                                    accordionBody.innerHTML = '<p class="text-muted mb-0">No students in this group.</p>';
+                                    groupItem.querySelector('.accordion-body').innerHTML = '<p class="text-muted mb-0">No students in this group.</p>';
                                 }
                             }
                         });
@@ -112,20 +92,14 @@ if (document.getElementById('groups-accordion')) {
 
             const item = e.target.closest('li[data-id]');
             const studentCount = parseInt(item.dataset.studentCount ?? '0');
-
             if (studentCount > 0) {
                 new bootstrap.Modal(document.getElementById('cannotDeleteModal')).show();
                 return;
             }
-
             const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
             document.getElementById('btn-confirm-delete').onclick = () => {
-                fetch(`/groups/delete/${item.dataset.id}`, { method: 'DELETE' })
-                    .then(r => r.json())
-                    .then(res => {
-                        modal.hide();
-                        if (res.success) searchGroups(currentPage);
-                    });
+                apiCall(`/groups/delete/${item.dataset.id}`, 'DELETE')
+                    .then(res => { modal.hide(); if (res.success) searchGroups(currentPage); });
             };
             modal.show();
         }
@@ -134,14 +108,8 @@ if (document.getElementById('groups-accordion')) {
             const item = e.target.closest('li[data-id]');
             const modal = new bootstrap.Modal(document.getElementById('clearStudentsModal'));
             document.getElementById('btn-confirm-clear').onclick = () => {
-                fetch(`/students/clearstudents?groupId=${item.dataset.id}`, { method: 'POST' })
-                    .then(r => r.json())
-                    .then(res => {
-                        if (res.success) {
-                            modal.hide();
-                            searchGroups(currentPage);
-                        }
-                    });
+                apiCall(`/students/clearstudents?groupId=${item.dataset.id}`, 'POST')
+                    .then(res => { if (res.success) { modal.hide(); searchGroups(currentPage); } });
             };
             modal.show();
         }
@@ -230,20 +198,11 @@ if (addForm) {
     }
 
     function saveGroup() {
-        fetch('/groups/add', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: nameInput.value,
-                courseId: courseSelect.value,
-                teacherId: teacherSelect.value || null
-            })
-        }).then(r => r.json()).then(res => {
-            if (res.success) {
-                resetForm();
-                searchGroups(currentPage);
-            }
-        });
+        apiCall('/groups/add', 'POST', {
+            name: nameInput.value,
+            courseId: courseSelect.value,
+            teacherId: teacherSelect.value || null
+        }).then(res => { if (res.success) { resetForm(); searchGroups(currentPage); } });
     }
 
     nameInput.addEventListener('input', validateAddForm);

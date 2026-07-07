@@ -1,10 +1,3 @@
-namespace CoursesApp.Web.DTOs
-{
-    public class StudentDto
-    {
-        public Guid? Id { get; set; }
-        public required string FirstName { get; set; }
-        public required string LastName { get; set; }
-        public Guid? GroupId { get; set; }
-    }
-}
+namespace CoursesApp.Web.DTOs;
+
+public record StudentDto(Guid? Id, string FirstName, string LastName, Guid? GroupId);

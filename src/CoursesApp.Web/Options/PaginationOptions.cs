@@ -1,7 +1,6 @@
-namespace CoursesApp.Web.Options
+namespace CoursesApp.Web.Options;
+
+public class PaginationOptions
 {
-    public class PaginationOptions
-    {
-        public int PageSize { get; set; } = 10;
-    }
+    public int PageSize { get; set; } = 10;
 }

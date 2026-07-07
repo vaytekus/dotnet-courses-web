@@ -1,64 +1,49 @@
-using CoursesApp.Domain.Entities;
-using CoursesApp.Domain.Interfaces;
-using CoursesApp.Domain.Interfaces.Repositories;
-using CoursesApp.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+namespace CoursesApp.Infrastructure.Repositories;
 
-namespace CoursesApp.Infrastructure.Repositories
+public class TeacherRepository(AppDbContext context) : RepositoryBase(context), ITeacherRepository
 {
-    public class TeacherRepository : ITeacherRepository
+    public async Task<List<Teacher>> GetAllTeachersAsync(CancellationToken ct = default)
     {
-        private readonly AppDbContext _context;
+        return await Context.Teachers.ToListAsync(ct);
+    }
 
-        public TeacherRepository(AppDbContext context)
+    public async Task<(List<Teacher>, int TotalCount)> GetFilteredTeachersAsync(string? search, int page, int pageSize, CancellationToken ct = default)
+    {
+        var query = Context.Teachers
+            .AsQueryable();
+
+        if (!string.IsNullOrEmpty(search))
         {
-            ArgumentNullException.ThrowIfNull(context);
-            _context = context;
+            query = query.Where(s => s.FirstName.Contains(search) || 
+                                     s.LastName.Contains(search));
         }
         
-        public async Task<List<Teacher>> GetAllTeachersAsync(CancellationToken ct = default)
-        {
-            return await _context.Teachers.ToListAsync(ct);
-        }
+        var total = await query.CountAsync(ct);
+        var teachers = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
 
-        public async Task<(List<Teacher>, int TotalCount)> GetFilteredTeachersAsync(string? search, int page, int pageSize, CancellationToken ct = default)
-        {
-            var query = _context.Teachers
-                .AsQueryable();
+        return (teachers, total);
+    }
 
-            if (!string.IsNullOrEmpty(search))
-            {
-                query = query.Where(s => s.FirstName.Contains(search) || 
-                                         s.LastName.Contains(search));
-            }
-            
-            var total = await query.CountAsync(ct);
-            var teachers = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(ct);
+    public async Task<Teacher?> GetTeacherByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        return await Context.Teachers.FindAsync(id, ct);
+    }
+    
+    public void AddTeacher(Teacher teacher)
+    {
+        Context.Teachers.Add(teacher); 
+    }
 
-            return (teachers, total);
-        }
+    public void UpdateTeacher(Teacher teacher)
+    {
+        Context.Teachers.Update(teacher);
+    }
 
-        public async Task<Teacher?> GetTeacherByIdAsync(Guid id, CancellationToken ct = default)
-        {
-            return await _context.Teachers.FindAsync(id, ct);
-        }
-        
-        public void AddTeacher(Teacher teacher)
-        {
-            _context.Teachers.Add(teacher); 
-        }
-
-        public void UpdateTeacher(Teacher teacher)
-        {
-            _context.Teachers.Update(teacher);
-        }
-
-        public void DeleteTeacher(Teacher teacher)
-        {
-            _context.Teachers.Remove(teacher);
-        }
+    public void DeleteTeacher(Teacher teacher)
+    {
+        Context.Teachers.Remove(teacher);
     }
 }

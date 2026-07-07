@@ -1,8 +1,4 @@
 using System.Diagnostics;
-using CoursesApp.Domain.Interfaces;
-using CoursesApp.Web.Models;
-using CoursesApp.Web.Services;
-using Microsoft.AspNetCore.Mvc;
 
 namespace CoursesApp.Web.Controllers;
 

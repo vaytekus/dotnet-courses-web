@@ -1,7 +1,6 @@
-namespace CoursesApp.Web.Services
+namespace CoursesApp.Web.Services;
+
+public interface IEmailService
 {
-    public interface IEmailService
-    {
-        Task SendEmailAsync(string email, string subject, string htmlBody, CancellationToken ct = default);
-    }
+    Task SendEmailAsync(string email, string subject, string htmlBody, CancellationToken ct = default);
 }

@@ -1,0 +1,9 @@
+global using CoursesApp.Domain.Entities;
+global using CoursesApp.Domain.Enums;
+global using CoursesApp.Domain.Interfaces.Repositories;
+global using CoursesApp.Web.DTOs;
+global using CoursesApp.Web.Mappers;
+global using CoursesApp.Web.Models;
+global using CoursesApp.Web.Options;
+global using CoursesApp.Web.Services;
+global using Microsoft.AspNetCore.Mvc;

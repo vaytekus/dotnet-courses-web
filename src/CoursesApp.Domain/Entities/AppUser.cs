@@ -1,9 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 
-namespace CoursesApp.Domain.Entities
+namespace CoursesApp.Domain.Entities;
+
+public class AppUser : IdentityUser
 {
-    public class AppUser : IdentityUser
-    {
-        
-    }
+    
 }

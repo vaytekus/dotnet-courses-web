@@ -1,15 +1,11 @@
-using CoursesApp.Domain.Enums;
-using CoursesApp.Web.DTOs;
-using CoursesApp.Web.Models;
+namespace CoursesApp.Web.Services;
 
-namespace CoursesApp.Web.Services
+public interface IGroupService
 {
-    public interface IGroupService
-    {
-        Task<GroupsIndexViewModel> GetPageAsync(string? search, Guid? id, GroupStudentFilter filter, int page, int pageSize, CancellationToken ct = default);
-        Task AddGroupAsync(GroupCreateDto dto, CancellationToken ct = default);
-        Task UpdateGroupAsync(GroupEditDto dto, CancellationToken ct = default);
-        Task UnassignTeacherAsync(Guid teacherId, CancellationToken ct = default);
-        Task<bool> DeleteGroupAsync(Guid id, CancellationToken ct = default);
-    }
+    Task<GroupsIndexViewModel> GetPageAsync(string? search, Guid? id, GroupStudentFilter filter, int page, int pageSize, CancellationToken ct = default);
+    Task<List<GroupSelectDto>> GetAllSelectAsync(CancellationToken ct = default);
+    Task AddGroupAsync(GroupCreateDto dto, CancellationToken ct = default);
+    Task UpdateGroupAsync(GroupEditDto dto, CancellationToken ct = default);
+    Task UnassignTeacherAsync(Guid teacherId, CancellationToken ct = default);
+    Task<bool> DeleteGroupAsync(Guid id, CancellationToken ct = default);
 }

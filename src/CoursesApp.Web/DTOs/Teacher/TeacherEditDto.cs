@@ -1,9 +1,3 @@
-namespace CoursesApp.Web.DTOs
-{
-    public class TeacherEditDto
-    {
-        public Guid Id { get; set; }
-        public required string FirstName { get; set; }
-        public required string LastName { get; set; }
-    }
-}
+namespace CoursesApp.Web.DTOs;
+
+public record TeacherEditDto(Guid Id, string FirstName, string LastName);

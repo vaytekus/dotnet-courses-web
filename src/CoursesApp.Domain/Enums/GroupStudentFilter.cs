@@ -1,9 +1,8 @@
-namespace CoursesApp.Domain.Enums
+namespace CoursesApp.Domain.Enums;
+
+public enum GroupStudentFilter
 {
-    public enum GroupStudentFilter
-    {
-        All,
-        WithStudents,
-        WithoutStudents
-    }
+    All,
+    WithStudents,
+    WithoutStudents
 }
