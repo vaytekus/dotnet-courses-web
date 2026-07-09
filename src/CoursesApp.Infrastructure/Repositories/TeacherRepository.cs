@@ -27,22 +27,22 @@ public class TeacherRepository(AppDbContext context) : RepositoryBase(context), 
         return (teachers, total);
     }
 
-    public async Task<Teacher?> GetTeacherByIdAsync(Guid id, CancellationToken ct = default)
+    public async Task<Teacher?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await Context.Teachers.FindAsync(id, ct);
     }
     
-    public void AddTeacher(Teacher teacher)
+    public void Add(Teacher teacher)
     {
         Context.Teachers.Add(teacher); 
     }
 
-    public void UpdateTeacher(Teacher teacher)
+    public void Update(Teacher teacher)
     {
         Context.Teachers.Update(teacher);
     }
 
-    public void DeleteTeacher(Teacher teacher)
+    public void Delete(Teacher teacher)
     {
         Context.Teachers.Remove(teacher);
     }

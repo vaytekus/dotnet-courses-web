@@ -38,22 +38,22 @@ public class StudentRepository(AppDbContext context) : RepositoryBase(context), 
         return (students, total);
     }
     
-    public async Task<Student?> GetStudentByIdAsync(Guid id, CancellationToken ct = default)
+    public async Task<Student?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await Context.Students.FindAsync(id, ct);
     }
     
-    public void AddStudent(Student student)
+    public void Add(Student student)
     {
         Context.Students.Add(student);
     }
 
-    public void UpdateStudent(Student student)
+    public void Update(Student student)
     {
         Context.Students.Update(student);
     }
 
-    public void DeleteStudent(Student student)
+    public void Delete(Student student)
     {
         Context.Students.Remove(student);
     }

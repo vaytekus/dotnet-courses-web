@@ -31,7 +31,7 @@ public class GroupServiceTests
 
         await _sut.AddGroupAsync(dto);
 
-        _groups.Verify(r => r.AddGroup(It.Is<Group>(g =>
+        _groups.Verify(r => r.Add(It.Is<Group>(g =>
             g.Name == dto.Name &&
             g.CourseId == dto.CourseId)), Times.Once);
         _uow.Verify(u => u.SaveAsync(), Times.Once);
@@ -56,7 +56,7 @@ public class GroupServiceTests
         await _sut.UpdateGroupAsync(dto);
 
         Assert.Equal("New Name", group.Name);
-        _groups.Verify(r => r.UpdateGroup(group), Times.Once);
+        _groups.Verify(r => r.Update(group), Times.Once);
         _uow.Verify(u => u.SaveAsync(), Times.Once);
     }
 
@@ -95,7 +95,7 @@ public class GroupServiceTests
         var result = await _sut.DeleteGroupAsync(group.Id);
 
         Assert.False(result);
-        _groups.Verify(r => r.DeleteGroup(It.IsAny<Group>()), Times.Never);
+        _groups.Verify(r => r.Delete(It.IsAny<Group>()), Times.Never);
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public class GroupServiceTests
         var result = await _sut.DeleteGroupAsync(group.Id);
 
         Assert.True(result);
-        _groups.Verify(r => r.DeleteGroup(group), Times.Once);
+        _groups.Verify(r => r.Delete(group), Times.Once);
         _uow.Verify(u => u.SaveAsync(), Times.Once);
     }
 }

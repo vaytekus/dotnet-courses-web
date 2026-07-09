@@ -59,7 +59,7 @@ public class CsvService(
                 continue;
             }
 
-            _uow.Students.AddStudent(new Domain.Entities.Student
+            _uow.Students.Add(new Domain.Entities.Student
             {
                 Id = Guid.NewGuid(),
                 FirstName = firstName,

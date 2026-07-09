@@ -33,7 +33,7 @@ public class StudentService(
             LastName = studentDto.LastName,
             GroupId = studentDto.GroupId ?? Guid.Empty
         };
-        _uow.Students.AddStudent(student);
+        _uow.Students.Add(student);
         await _uow.SaveAsync(ct);
         _logger.LogInformation("Student {Id} added successfully", student.Id);
     }
@@ -42,12 +42,12 @@ public class StudentService(
     {
         ArgumentNullException.ThrowIfNull(studentDto);
         _logger.LogInformation("Updating student {Id}", studentDto.Id);
-        var student = await _uow.Students.GetStudentByIdAsync(studentDto.Id, ct)
+        var student = await _uow.Students.GetByIdAsync(studentDto.Id, ct)
             ?? throw new KeyNotFoundException($"Student {studentDto.Id} not found");
         student.FirstName = studentDto.FirstName;
         student.LastName = studentDto.LastName;
         student.GroupId = studentDto.GroupId;
-        _uow.Students.UpdateStudent(student);
+        _uow.Students.Update(student);
         await _uow.SaveAsync(ct);
         _logger.LogInformation("Student {Id} updated successfully", studentDto.Id);
     }
@@ -55,9 +55,9 @@ public class StudentService(
     public async Task DeleteStudentAsync(Guid id, CancellationToken ct = default)
     {
         _logger.LogInformation("Deleting student {Id}", id);
-        var student = await _uow.Students.GetStudentByIdAsync(id, ct)
+        var student = await _uow.Students.GetByIdAsync(id, ct)
             ?? throw new KeyNotFoundException($"Student {id} not found");
-        _uow.Students.DeleteStudent(student);
+        _uow.Students.Delete(student);
         await _uow.SaveAsync(ct);
         _logger.LogInformation("Student {Id} deleted successfully", id);
     }

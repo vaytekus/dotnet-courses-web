@@ -31,7 +31,7 @@ public class TeacherServiceTests
 
         await _sut.AddTeacherAsync(dto);
 
-        _teachers.Verify(r => r.AddTeacher(It.Is<Teacher>(t =>
+        _teachers.Verify(r => r.Add(It.Is<Teacher>(t =>
             t.FirstName == dto.FirstName &&
             t.LastName == dto.LastName)), Times.Once);
         _uow.Verify(u => u.SaveAsync(), Times.Once);
@@ -40,7 +40,7 @@ public class TeacherServiceTests
     [Fact]
     public async Task UpdateTeacherAsync_ThrowsKeyNotFoundException_WhenTeacherNotFound()
     {
-        _teachers.Setup(r => r.GetTeacherByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Teacher?)null);
+        _teachers.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Teacher?)null);
         var dto = new TeacherEditDto(Guid.NewGuid(), "A", "B");
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() => _sut.UpdateTeacherAsync(dto));
@@ -50,20 +50,20 @@ public class TeacherServiceTests
     public async Task UpdateTeacherAsync_UpdatesFieldsAndSaves_WhenTeacherExists()
     {
         var teacher = new Teacher { Id = Guid.NewGuid(), FirstName = "Old", LastName = "Name" };
-        _teachers.Setup(r => r.GetTeacherByIdAsync(teacher.Id)).ReturnsAsync(teacher);
+        _teachers.Setup(r => r.GetByIdAsync(teacher.Id, It.IsAny<CancellationToken>())).ReturnsAsync(teacher);
         var dto = new TeacherEditDto(teacher.Id, "New", "Name");
 
         await _sut.UpdateTeacherAsync(dto);
 
         Assert.Equal("New", teacher.FirstName);
-        _teachers.Verify(r => r.UpdateTeacher(teacher), Times.Once);
+        _teachers.Verify(r => r.Update(teacher), Times.Once);
         _uow.Verify(u => u.SaveAsync(), Times.Once);
     }
 
     [Fact]
     public async Task ValidateExistAsync_ThrowsKeyNotFoundException_WhenTeacherNotFound()
     {
-        _teachers.Setup(r => r.GetTeacherByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Teacher?)null);
+        _teachers.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Teacher?)null);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() => _sut.ValidateExistAsync(Guid.NewGuid()));
     }
@@ -72,7 +72,7 @@ public class TeacherServiceTests
     public async Task ValidateExistAsync_DoesNotThrow_WhenTeacherExists()
     {
         var teacher = new Teacher { Id = Guid.NewGuid(), FirstName = "A", LastName = "B" };
-        _teachers.Setup(r => r.GetTeacherByIdAsync(teacher.Id)).ReturnsAsync(teacher);
+        _teachers.Setup(r => r.GetByIdAsync(teacher.Id, It.IsAny<CancellationToken>())).ReturnsAsync(teacher);
 
         var ex = await Record.ExceptionAsync(() => _sut.ValidateExistAsync(teacher.Id));
 
@@ -82,7 +82,7 @@ public class TeacherServiceTests
     [Fact]
     public async Task DeleteTeacherAsync_ThrowsKeyNotFoundException_WhenTeacherNotFound()
     {
-        _teachers.Setup(r => r.GetTeacherByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Teacher?)null);
+        _teachers.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Teacher?)null);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() => _sut.DeleteTeacherAsync(Guid.NewGuid()));
     }
@@ -91,11 +91,11 @@ public class TeacherServiceTests
     public async Task DeleteTeacherAsync_DeletesAndSaves_WhenTeacherExists()
     {
         var teacher = new Teacher { Id = Guid.NewGuid(), FirstName = "A", LastName = "B" };
-        _teachers.Setup(r => r.GetTeacherByIdAsync(teacher.Id)).ReturnsAsync(teacher);
+        _teachers.Setup(r => r.GetByIdAsync(teacher.Id, It.IsAny<CancellationToken>())).ReturnsAsync(teacher);
 
         await _sut.DeleteTeacherAsync(teacher.Id);
 
-        _teachers.Verify(r => r.DeleteTeacher(teacher), Times.Once);
+        _teachers.Verify(r => r.Delete(teacher), Times.Once);
         _uow.Verify(u => u.SaveAsync(), Times.Once);
     }
 }

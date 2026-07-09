@@ -5,7 +5,7 @@ public class TeachersController(
     IGroupService groupService,
     IConfiguration configuration,
     ILogger<TeachersController> logger)
-    : ApiControllerBase(logger, configuration)
+    : BaseController(logger, configuration)
 {
     public async Task<IActionResult> Index(CancellationToken ct)
     {

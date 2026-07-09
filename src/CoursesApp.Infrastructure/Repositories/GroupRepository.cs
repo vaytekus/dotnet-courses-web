@@ -61,17 +61,17 @@ public class GroupRepository(AppDbContext context) : RepositoryBase(context), IG
             .FirstOrDefaultAsync(g => g.Id == groupId, ct);
     }
     
-    public void AddGroup(Group group)
+    public void Add(Group group)
     {
         Context.Groups.Add(group);
     }
 
-    public void UpdateGroup(Group group)
+    public void Update(Group group)
     {
         Context.Groups.Update(group);
     }
 
-    public void DeleteGroup(Group group)
+    public void Delete(Group group)
     {
         Context.Groups.Remove(group);
     }

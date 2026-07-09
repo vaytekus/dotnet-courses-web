@@ -5,7 +5,7 @@ public class StudentsController(
     IGroupService groupService,
     ICsvService csvService,
     IConfiguration configuration,
-    ILogger<StudentsController> logger) : ApiControllerBase(logger, configuration)
+    ILogger<StudentsController> logger) : BaseController(logger, configuration)
 {
     private const string _csvContentType = "text/csv";
     private const string _csvFileName = "students.csv";

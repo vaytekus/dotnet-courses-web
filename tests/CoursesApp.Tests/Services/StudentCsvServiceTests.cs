@@ -44,7 +44,7 @@ public class StudentCsvServiceTests
 
         Assert.Equal(2, result.ImportedCount);
         Assert.Empty(result.Errors);
-        _students.Verify(r => r.AddStudent(It.IsAny<Student>()), Times.Exactly(2));
+        _students.Verify(r => r.Add(It.IsAny<Student>()), Times.Exactly(2));
         _uow.Verify(u => u.SaveAsync(), Times.Once);
     }
 
@@ -59,8 +59,8 @@ public class StudentCsvServiceTests
 
         Assert.Equal(2, result.ImportedCount);
         Assert.Empty(result.Errors);
-        _students.Verify(r => r.AddStudent(It.Is<Student>(s => s.FirstName == "Alice")), Times.Once);
-        _students.Verify(r => r.AddStudent(It.Is<Student>(s => s.FirstName == "Bob")), Times.Once);
+        _students.Verify(r => r.Add(It.Is<Student>(s => s.FirstName == "Alice")), Times.Once);
+        _students.Verify(r => r.Add(It.Is<Student>(s => s.FirstName == "Bob")), Times.Once);
     }
 
     [Fact]

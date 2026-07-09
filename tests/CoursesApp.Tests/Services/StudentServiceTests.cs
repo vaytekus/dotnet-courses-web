@@ -28,7 +28,7 @@ public class StudentServiceTests
 
         await _sut.AddStudentAsync(dto);
 
-        _students.Verify(r => r.AddStudent(It.Is<Student>(s =>
+        _students.Verify(r => r.Add(It.Is<Student>(s =>
             s.FirstName == dto.FirstName &&
             s.LastName == dto.LastName)), Times.Once);
         _uow.Verify(u => u.SaveAsync(), Times.Once);
@@ -37,7 +37,7 @@ public class StudentServiceTests
     [Fact]
     public async Task UpdateStudentAsync_ThrowsKeyNotFoundException_WhenStudentNotFound()
     {
-        _students.Setup(r => r.GetStudentByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Student?)null);
+        _students.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Student?)null);
         var dto = new StudentEditDto(Guid.NewGuid(), "A", "B", Guid.NewGuid());
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() => _sut.UpdateStudentAsync(dto));
@@ -47,20 +47,20 @@ public class StudentServiceTests
     public async Task UpdateStudentAsync_UpdatesFieldsAndSaves_WhenStudentExists()
     {
         var student = new Student { Id = Guid.NewGuid(), FirstName = "Old", LastName = "Name", GroupId = Guid.NewGuid() };
-        _students.Setup(r => r.GetStudentByIdAsync(student.Id)).ReturnsAsync(student);
+        _students.Setup(r => r.GetByIdAsync(student.Id, It.IsAny<CancellationToken>())).ReturnsAsync(student);
         var dto = new StudentEditDto(student.Id, "New", "Name", student.GroupId);
 
         await _sut.UpdateStudentAsync(dto);
 
         Assert.Equal("New", student.FirstName);
-        _students.Verify(r => r.UpdateStudent(student), Times.Once);
+        _students.Verify(r => r.Update(student), Times.Once);
         _uow.Verify(u => u.SaveAsync(), Times.Once);
     }
 
     [Fact]
     public async Task DeleteStudentAsync_ThrowsKeyNotFoundException_WhenStudentNotFound()
     {
-        _students.Setup(r => r.GetStudentByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Student?)null);
+        _students.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Student?)null);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() => _sut.DeleteStudentAsync(Guid.NewGuid()));
     }
@@ -69,11 +69,11 @@ public class StudentServiceTests
     public async Task DeleteStudentAsync_DeletesAndSaves_WhenStudentExists()
     {
         var student = new Student { Id = Guid.NewGuid(), FirstName = "A", LastName = "B", GroupId = Guid.NewGuid() };
-        _students.Setup(r => r.GetStudentByIdAsync(student.Id)).ReturnsAsync(student);
+        _students.Setup(r => r.GetByIdAsync(student.Id, It.IsAny<CancellationToken>())).ReturnsAsync(student);
 
         await _sut.DeleteStudentAsync(student.Id);
 
-        _students.Verify(r => r.DeleteStudent(student), Times.Once);
+        _students.Verify(r => r.Delete(student), Times.Once);
         _uow.Verify(u => u.SaveAsync(), Times.Once);
     }
 

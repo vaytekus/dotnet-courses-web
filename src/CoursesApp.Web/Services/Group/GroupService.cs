@@ -65,7 +65,7 @@ public class GroupService(
             CourseId = dto.CourseId,
             TeacherId = dto.TeacherId,
         };
-        _uow.Groups.AddGroup(group);
+        _uow.Groups.Add(group);
         await _uow.SaveAsync(ct);
         _logger.LogInformation("Group {Id} added successfully", group.Id);
         InvalidateCache();
@@ -79,7 +79,7 @@ public class GroupService(
                     ?? throw new KeyNotFoundException($"Group with id {dto.Id} not found");
         group.Name = dto.Name;
         group.TeacherId = dto.TeacherId;
-        _uow.Groups.UpdateGroup(group);
+        _uow.Groups.Update(group);
         await _uow.SaveAsync(ct);
         _logger.LogInformation("Group {Id} updated successfully", dto.Id);
         InvalidateCache();
@@ -100,7 +100,7 @@ public class GroupService(
             _logger.LogWarning("Cannot delete group {Id} — it has {Count} students", id, group.Students.Count);
             return false;
         }
-        _uow.Groups.DeleteGroup(group);
+        _uow.Groups.Delete(group);
         await _uow.SaveAsync(ct);
         _logger.LogInformation("Group {Id} deleted successfully", id);
         InvalidateCache();

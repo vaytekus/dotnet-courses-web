@@ -23,7 +23,7 @@ public class TeacherService(
             FirstName = dto.FirstName,
             LastName = dto.LastName
         };
-        _uow.Teachers.AddTeacher(teacher);
+        _uow.Teachers.Add(teacher);
         await _uow.SaveAsync(ct);
         _logger.LogInformation("Teacher {Id} added successfully", teacher.Id);
     }
@@ -32,18 +32,18 @@ public class TeacherService(
     {
         ArgumentNullException.ThrowIfNull(dto);
         _logger.LogInformation("Updating teacher {Id}", dto.Id);
-        var teacher = await _uow.Teachers.GetTeacherByIdAsync(dto.Id, ct)
+        var teacher = await _uow.Teachers.GetByIdAsync(dto.Id, ct)
             ?? throw new KeyNotFoundException($"Teacher {dto.Id} not found");
         teacher.FirstName = dto.FirstName;
         teacher.LastName = dto.LastName;
-        _uow.Teachers.UpdateTeacher(teacher);
+        _uow.Teachers.Update(teacher);
         await _uow.SaveAsync(ct);
         _logger.LogInformation("Teacher {Id} updated successfully", dto.Id);
     }
 
     public async Task ValidateExistAsync(Guid id, CancellationToken ct = default)
     {
-        if (await _uow.Teachers.GetTeacherByIdAsync(id, ct) is null)
+        if (await _uow.Teachers.GetByIdAsync(id, ct) is null)
         {
             throw new KeyNotFoundException($"Teacher {id} not found");
         }
@@ -52,9 +52,9 @@ public class TeacherService(
     public async Task DeleteTeacherAsync(Guid id, CancellationToken ct = default)
     {
         _logger.LogInformation("Deleting teacher {Id}", id);
-        var teacher = await _uow.Teachers.GetTeacherByIdAsync(id, ct)
+        var teacher = await _uow.Teachers.GetByIdAsync(id, ct)
             ?? throw new KeyNotFoundException($"Teacher {id} not found");
-        _uow.Teachers.DeleteTeacher(teacher);
+        _uow.Teachers.Delete(teacher);
         await _uow.SaveAsync(ct);
         _logger.LogInformation("Teacher {Id} deleted successfully", id);
     }

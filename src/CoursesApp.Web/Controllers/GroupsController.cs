@@ -4,7 +4,7 @@ public class GroupsController(
     IGroupService groupService,
     IConfiguration configuration,
     ILogger<GroupsController> logger)
-    : ApiControllerBase(logger, configuration)
+    : BaseController(logger, configuration)
 {
     public async Task<IActionResult> Index(CancellationToken ct)
     {

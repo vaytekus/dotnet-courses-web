@@ -1,6 +1,6 @@
 namespace CoursesApp.Web.Controllers;
 
-public abstract class ApiControllerBase(
+public abstract class BaseController(
     ILogger logger, 
     IConfiguration configuration) : Controller
 {
