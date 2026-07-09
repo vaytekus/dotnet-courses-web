@@ -20,7 +20,7 @@ else
                     <div class="d-flex w-100 align-items-center pe-3">
                         <strong style="flex: 1 1 0; min-width: 0">@group.Name</strong>
                         <span class="text-muted" style="flex: 1 1 0; min-width: 0">@group.Course.Name</span>
-                        <span class="text-muted" style="flex: 1 1 0; min-width: 0">
+                        <span class="text-muted" style="flex: 1 1 0; min-width: 0" data-teacher-id="@group.TeacherId">
                             @(group.Teacher != null
                                 ? $"{group.Teacher.FirstName} {group.Teacher.LastName}"
                                 : "—")

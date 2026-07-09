@@ -1,3 +1,39 @@
+let _studentTableDirty = false;
+let _pendingSaveStudentId = null;
+
+connection.on("StudentAdded", () => searchStudents(currentPage));
+
+connection.on("StudentDeleted", (studentId) => {
+    const editingRow = document.querySelector('#students-table .edit-mode:not(.d-none)')?.closest('tr');
+    if (editingRow) {
+        if (editingRow.dataset.id === studentId) {
+            exitEditMode(editingRow);
+            editingRow.remove();
+        } else {
+            _studentTableDirty = true;
+        }
+        return;
+    }
+    searchStudents(currentPage);
+});
+
+connection.on("StudentUpdated", (studentId, firstName, lastName, groupId) => {
+    if (_pendingSaveStudentId === studentId) return;
+    const row = document.querySelector(`tr[data-id="${studentId}"]`);
+    if (!row) return;
+    if (row.querySelector('.edit-mode:not(.d-none)')) {
+        alert('This student was updated by another user. Your changes may conflict.');
+        return;
+    }
+    row.querySelector('td:nth-child(2) .view-mode').textContent = firstName;
+    row.querySelector('td:nth-child(3) .view-mode').textContent = lastName;
+    const select = row.querySelector('select[name="groupId"]');
+    if (select) {
+        select.value = groupId;
+        row.querySelector('td:nth-child(4) .view-mode').textContent = select.options[select.selectedIndex]?.text ?? '';
+    }
+});
+
 let currentPage = 1;
 let searchAbortController = null;
 
@@ -52,6 +88,7 @@ if (document.getElementById('students-table')) {
             row.querySelector('input[name="lastName"]').value = row.dataset.originalLastName;
             row.querySelector('select[name="groupId"]').value = row.dataset.originalGroupId;
             exitEditMode(row);
+            if (_studentTableDirty) { _studentTableDirty = false; searchStudents(currentPage); }
         }
 
         if (e.target.classList.contains('btn-save')) {
@@ -60,14 +97,19 @@ if (document.getElementById('students-table')) {
             const firstName = row.querySelector('input[name="firstName"]').value;
             const lastName = row.querySelector('input[name="lastName"]').value;
             const groupId = row.querySelector('select[name="groupId"]').value;
+            _pendingSaveStudentId = id;
             apiCall('/students/edit', 'POST', { id, firstName, lastName, groupId })
                 .then(res => {
                     if (res.success) {
+                        _pendingSaveStudentId = null;
                         row.querySelector('td:nth-child(2) .view-mode').textContent = firstName;
                         row.querySelector('td:nth-child(3) .view-mode').textContent = lastName;
                         const select = row.querySelector('select[name="groupId"]');
                         row.querySelector('td:nth-child(4) .view-mode').textContent = select.options[select.selectedIndex].text;
                         exitEditMode(row);
+                        if (_studentTableDirty) { _studentTableDirty = false; searchStudents(currentPage); }
+                    } else {
+                        _pendingSaveStudentId = null;
                     }
                 });
         }
@@ -76,8 +118,8 @@ if (document.getElementById('students-table')) {
             const row = e.target.closest('tr');
             const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
             document.getElementById('btn-confirm-delete').onclick = () => {
-                apiCall(`/students/delete/${row.dataset.id}`, 'DELETE')
-                    .then(res => { if (res.success) { modal.hide(); searchStudents(currentPage); } });
+                apiCall(`/students/delete/${row.dataset.id}?groupId=${row.dataset.groupId}`, 'DELETE')
+                    .then(res => { if (res.success) { modal.hide(); row.remove(); } });
             };
             modal.show();
         }
@@ -117,7 +159,7 @@ if (addForm) {
         saveBtn.disabled = true;
         apiCall('/students/add', 'POST', { firstName: firstName.value, lastName: lastName.value, groupId: group.value })
             .then(res => {
-                if (res.success) { addForm.reset(); toggleForm(); searchStudents(currentPage); }
+                if (res.success) { addForm.reset(); toggleForm(); }
                 else { saveBtn.disabled = false; }
             }).catch(() => { saveBtn.disabled = false; });
     }

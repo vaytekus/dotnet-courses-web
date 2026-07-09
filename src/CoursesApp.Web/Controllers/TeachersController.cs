@@ -1,9 +1,13 @@
+using CoursesApp.Web.Hubs;
+using Microsoft.AspNetCore.SignalR;
+
 namespace CoursesApp.Web.Controllers;
 
 public class TeachersController(
     ITeacherService teacherService,
     IGroupService groupService,
     IConfiguration configuration,
+    IHubContext<AppHub> hubContext,
     ILogger<TeachersController> logger)
     : BaseController(logger, configuration)
 {
@@ -31,13 +35,19 @@ public class TeachersController(
             return BadRequest("Invalid data");
         }
         
-        return await ExecuteAsync(() => teacherService.AddTeacherAsync(dto, ct), "Error adding teacher");
+        return await ExecuteAsync(
+            () => teacherService.AddTeacherAsync(dto, ct),
+            "Error adding teacher",
+            id => hubContext.Clients.All.SendAsync("TeacherAdded", id, dto.FirstName, dto.LastName, cancellationToken: ct));
     }
 
     [HttpPost]
     public async Task<IActionResult> Edit([FromBody] TeacherEditDto dto, CancellationToken ct)
     {
-        return await ExecuteAsync(() => teacherService.UpdateTeacherAsync(dto, ct), "Error updating teacher");
+        return await ExecuteAsync(
+            () => teacherService.UpdateTeacherAsync(dto, ct),
+            "Error updating teacher",
+            () => hubContext.Clients.All.SendAsync("TeacherUpdated", dto.Id, dto.FirstName, dto.LastName, cancellationToken: ct));
     }
 
     [HttpDelete]
@@ -48,7 +58,9 @@ public class TeachersController(
             await teacherService.ValidateExistAsync(id, ct);
             await groupService.UnassignTeacherAsync(id, ct);                                                                                                                                                                               
             await teacherService.DeleteTeacherAsync(id, ct);
-        }, "Error deleting teacher"); 
+        }, 
+        "Error deleting teacher",
+        () => hubContext.Clients.All.SendAsync("TeacherDeleted", id, cancellationToken: ct));
     }
 
     private async Task<TeachersIndexViewModel> BuildViewModelAsync(string? search, int page, CancellationToken ct = default)

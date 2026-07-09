@@ -1,11 +1,22 @@
+const connection = new signalR.HubConnectionBuilder()
+    .withUrl("/hubs/app")
+    .withAutomaticReconnect()
+    .build();
+
+connection.start().catch(err => console.error("SignalR:", err));
+
 document.addEventListener('show.bs.collapse', function (e) {
     const collapseEl = e.target;
     const groupId = collapseEl.dataset.groupId;
     if (!groupId) return;
 
     const container = collapseEl.querySelector('.students-container');
-    if (!container || container.innerHTML.trim()) return;
+    if (!container) return;
 
+    const isDirty = collapseEl.dataset.dirty === 'true';
+    if (!isDirty && container.innerHTML.trim()) return;
+
+    delete collapseEl.dataset.dirty;
     e.preventDefault();
 
     container.innerHTML = `

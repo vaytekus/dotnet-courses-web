@@ -2,6 +2,7 @@ using System.Threading.RateLimiting;
 using CoursesApp.Infrastructure.Data;
 using CoursesApp.Infrastructure.Extensions;
 using CoursesApp.Web.Extensions;
+using CoursesApp.Web.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
@@ -32,6 +33,7 @@ try
     .AddRazorRuntimeCompilation();
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddWebServices(builder.Configuration);
+    builder.Services.AddSignalR();
     builder.Services.AddRateLimiter(options =>
     {
         options.AddFixedWindowLimiter(RateLimiterPolicyNames.Fixed, limiter =>
@@ -84,6 +86,7 @@ try
         .WithStaticAssets()
         .RequireRateLimiting(RateLimiterPolicyNames.Fixed);
 
+    app.MapHub<AppHub>("/hubs/app");
     app.Run();
 }
 catch (Exception ex)

@@ -13,7 +13,7 @@ else
     @for (int i = 0; i < Model.Teachers.Count; i++)
     {
         <tr data-id="@Model.Teachers[i].Id">
-            <td>@(i+1)</td>
+            <td>@((Model.Page - 1) * Model.PageSize + i + 1)</td>
             <td>
                 <span class="view-mode">
                     @Model.Teachers[i].FirstName

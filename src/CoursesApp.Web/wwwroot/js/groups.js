@@ -1,3 +1,74 @@
+connection.on("TeacherAdded", (teacherId, firstName, lastName) => {
+    const fullName = `${firstName} ${lastName}`;
+    document.querySelectorAll('select[name="teacherId"], #selectTeacher')
+        .forEach(select => {
+            const opt = document.createElement('option');
+            opt.value = teacherId;
+            opt.textContent = fullName;
+            select.appendChild(opt);
+        });
+});
+
+connection.on("TeacherUpdated", (teacherId, firstName, lastName) => {
+    const fullName = `${firstName} ${lastName}`;
+    document.querySelectorAll(`[data-teacher-id="${teacherId}"]`)
+        .forEach(el => el.textContent = fullName);
+    document.querySelectorAll(`select[name="teacherId"] option[value="${teacherId}"], #selectTeacher option[value="${teacherId}"]`)
+        .forEach(opt => opt.textContent = fullName);
+});
+
+connection.on("TeacherDeleted", (teacherId) => {
+    document.querySelectorAll(`[data-teacher-id="${teacherId}"]`)
+        .forEach(el => { el.textContent = '—'; el.removeAttribute('data-teacher-id'); });
+    document.querySelectorAll(`select[name="teacherId"] option[value="${teacherId}"], #selectTeacher option[value="${teacherId}"]`)
+        .forEach(opt => {
+            const select = opt.parentElement;
+            const wasSelected = opt.selected;
+            opt.remove();
+            if (wasSelected) select.value = '';
+        });
+});
+
+connection.on("StudentUpdated", (studentId, firstName, lastName, groupId) => {
+    const collapse = document.getElementById(`collapse-${groupId}`);
+    if (!collapse) return;
+
+    if (collapse.classList.contains('show')) {
+        const row = collapse.querySelector(`tr[data-id="${studentId}"]`);
+        if (row) {
+            row.querySelector('td:nth-child(2)').textContent = firstName;
+            row.querySelector('td:nth-child(3)').textContent = lastName;
+        }
+    } else if (collapse.querySelector('.students-container')?.innerHTML.trim()) {
+        collapse.dataset.dirty = 'true';
+    }
+});
+
+connection.on("StudentDeleted", (studentId, groupId) => {
+    const collapse = document.getElementById(`collapse-${groupId}`);
+    if (!collapse) return;
+
+    if (collapse.classList.contains('show')) {
+        collapse.querySelector(`tr[data-id="${studentId}"]`)?.remove();
+    } else if (collapse.querySelector('.students-container')?.innerHTML.trim()) {
+        collapse.dataset.dirty = 'true';
+    }
+});
+
+connection.on("StudentAdded", (groupId) => {
+    const collapse = document.getElementById(`collapse-${groupId}`);
+    if (!collapse) return;
+
+    if (collapse.classList.contains('show')) {
+        const container = collapse.querySelector('.students-container');
+        fetch(`/students/getstudent?groupId=${groupId}`)
+            .then(r => r.text())
+            .then(html => { container.innerHTML = html; });
+    } else if (collapse.querySelector('.students-container')?.innerHTML.trim()) {
+        collapse.dataset.dirty = 'true';
+    }
+});
+
 let currentPage = 1;
 let currentImportGroupId = '';
 

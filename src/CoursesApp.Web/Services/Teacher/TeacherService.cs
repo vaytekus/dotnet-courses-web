@@ -13,7 +13,7 @@ public class TeacherService(
         return (teachers.ToDtoList(), total);
     }
 
-    public async Task AddTeacherAsync(TeacherDto dto, CancellationToken ct = default)
+    public async Task<Guid> AddTeacherAsync(TeacherDto dto, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(dto);
         _logger.LogInformation("Adding teacher {FirstName} {LastName}", dto.FirstName, dto.LastName);
@@ -26,6 +26,8 @@ public class TeacherService(
         _uow.Teachers.Add(teacher);
         await _uow.SaveAsync(ct);
         _logger.LogInformation("Teacher {Id} added successfully", teacher.Id);
+
+        return teacher.Id;
     }
 
     public async Task UpdateTeacherAsync(TeacherEditDto dto, CancellationToken ct = default)

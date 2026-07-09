@@ -1,3 +1,6 @@
+using CoursesApp.Web.Hubs;
+using Microsoft.AspNetCore.SignalR;
+
 namespace CoursesApp.Web.Controllers;
 
 public class StudentsController(
@@ -5,6 +8,7 @@ public class StudentsController(
     IGroupService groupService,
     ICsvService csvService,
     IConfiguration configuration,
+    IHubContext<AppHub> hubContext,
     ILogger<StudentsController> logger) : BaseController(logger, configuration)
 {
     private const string _csvContentType = "text/csv";
@@ -25,7 +29,10 @@ public class StudentsController(
             return BadRequest("Invalid data");
         }
         
-        return await ExecuteAsync(() => studentService.AddStudentAsync(dto, ct), "Error adding student");
+        return await ExecuteAsync(
+            () => studentService.AddStudentAsync(dto, ct), 
+            "Error adding student",
+            () => hubContext.Clients.All.SendAsync("StudentAdded", dto.GroupId, cancellationToken: ct));
     }
 
     [HttpGet]
@@ -39,13 +46,19 @@ public class StudentsController(
     [HttpPost]
     public async Task<IActionResult> Edit([FromBody] StudentEditDto dto, CancellationToken ct)
     {
-        return await ExecuteAsync(() => studentService.UpdateStudentAsync(dto, ct), "Error updating student"); 
+        return await ExecuteAsync(
+            () => studentService.UpdateStudentAsync(dto, ct), 
+            "Error updating student",
+            () => hubContext.Clients.All.SendAsync("StudentUpdated", dto.Id, dto.FirstName, dto.LastName, dto.GroupId, cancellationToken: ct)); 
     }
 
     [HttpDelete]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    public async Task<IActionResult> Delete(Guid id, Guid groupId, CancellationToken ct)
     {
-        return await ExecuteAsync(() => studentService.DeleteStudentAsync(id, ct), "Error deleting student");
+        return await ExecuteAsync(
+            () => studentService.DeleteStudentAsync(id, ct),
+            "Error deleting student",
+            () => hubContext.Clients.All.SendAsync("StudentDeleted", id, groupId, cancellationToken: ct));
     }
 
     [HttpPost]

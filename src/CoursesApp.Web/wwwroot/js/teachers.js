@@ -1,3 +1,34 @@
+let _teacherTableDirty = false;
+let _pendingSaveTeacherId = null;
+
+connection.on("TeacherAdded", () => searchTeachers(currentPage));
+
+connection.on("TeacherDeleted", (teacherId) => {
+    const editingRow = document.querySelector('#teachers-table .edit-mode:not(.d-none)')?.closest('tr');
+    if (editingRow) {
+        if (editingRow.dataset.id === teacherId) {
+            exitEditMode(editingRow);
+            editingRow.remove();
+        } else {
+            _teacherTableDirty = true;
+        }
+        return;
+    }
+    searchTeachers(currentPage);
+});
+
+connection.on("TeacherUpdated", (teacherId, firstName, lastName) => {
+    if (_pendingSaveTeacherId === teacherId) return;
+    const row = document.querySelector(`tr[data-id="${teacherId}"]`);
+    if (!row) return;
+    if (row.querySelector('.edit-mode:not(.d-none)')) {
+        alert('This teacher was updated by another user. Your changes may conflict.');
+        return;
+    }
+    row.querySelector('td:nth-child(2) .view-mode').textContent = firstName;
+    row.querySelector('td:nth-child(3) .view-mode').textContent = lastName;
+});
+
 let currentPage = 1;
 let debounceTimer;
 
@@ -53,8 +84,8 @@ if (document.getElementById('teachers-table')) {
             const row = e.target.closest('tr');
             row.querySelector('input[name="firstName"]').value = row.dataset.originalFirstName;
             row.querySelector('input[name="lastName"]').value = row.dataset.originalLastName;
-            row.querySelectorAll('.view-mode').forEach(el => el.classList.remove('d-none'));
-            row.querySelectorAll('.edit-mode').forEach(el => el.classList.add('d-none'));
+            exitEditMode(row);
+            if (_teacherTableDirty) { _teacherTableDirty = false; searchTeachers(currentPage); }
         }
 
         // Save
@@ -64,17 +95,19 @@ if (document.getElementById('teachers-table')) {
             const firstName = row.querySelector('input[name="firstName"]').value;
             const lastName = row.querySelector('input[name="lastName"]').value;
 
+            _pendingSaveTeacherId = id;
             fetch('/teachers/edit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, firstName, lastName })
             }).then(r => r.json()).then(res => {
                 if (res.success) {
+                    _pendingSaveTeacherId = null;
                     row.querySelector('td:nth-child(2) .view-mode').textContent = firstName;
                     row.querySelector('td:nth-child(3) .view-mode').textContent = lastName;
-                    row.querySelectorAll('.view-mode').forEach(el => el.classList.remove('d-none'));
-                    row.querySelectorAll('.edit-mode').forEach(el => el.classList.add('d-none'));
-                }
+                    exitEditMode(row);
+                    if (_teacherTableDirty) { _teacherTableDirty = false; searchTeachers(currentPage); }
+                } else { _pendingSaveTeacherId = null; }
             });
         }
 
@@ -93,10 +126,7 @@ if (document.getElementById('teachers-table')) {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                 }).then(r => r.json()).then(res => {
-                    if (res.success) {
-                        modal.hide();
-                        searchTeachers(currentPage);
-                    }
+                    if (res.success) { modal.hide(); row.remove(); }
                 });
             };
             modal.show();
@@ -145,10 +175,7 @@ if (addForm) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ firstName: firstNameValue, lastName: lastNameValue })
         }).then(r => r.json()).then(res => {
-            if (res.success) {
-                resetForm();
-                searchTeachers(currentPage);
-            }
+            if (res.success) { resetForm(); }
         });
     }
 
