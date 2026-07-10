@@ -49,7 +49,11 @@ connection.on("StudentDeleted", (studentId, groupId) => {
     if (!collapse) return;
 
     if (collapse.classList.contains('show')) {
-        collapse.querySelector(`tr[data-id="${studentId}"]`)?.remove();
+        const container = collapse.querySelector('.students-container');
+        const currentPage = collapse.querySelector('.students-page')?.dataset.currentPage ?? '1';
+        fetch(`/students/getstudent?groupId=${groupId}&page=${currentPage}`)
+            .then(r => r.text())
+            .then(html => { container.innerHTML = html; });
     } else if (collapse.querySelector('.students-container')?.innerHTML.trim()) {
         collapse.dataset.dirty = 'true';
     }
@@ -61,7 +65,8 @@ connection.on("StudentAdded", (groupId) => {
 
     if (collapse.classList.contains('show')) {
         const container = collapse.querySelector('.students-container');
-        fetch(`/students/getstudent?groupId=${groupId}`)
+        const currentPage = collapse.querySelector('.students-page')?.dataset.currentPage ?? '1';
+        fetch(`/students/getstudent?groupId=${groupId}&page=${currentPage}`)
             .then(r => r.text())
             .then(html => { container.innerHTML = html; });
     } else if (collapse.querySelector('.students-container')?.innerHTML.trim()) {
@@ -134,26 +139,16 @@ if (document.getElementById('groups-accordion')) {
                 const lastName = cells[2].textContent.trim();
                 const modal = new bootstrap.Modal(document.getElementById('deleteStudentModal'));
                 document.getElementById('delete-student-name').textContent = `${firstName} ${lastName}`;
+                const groupItem = studentRow.closest('li[data-id]');
                 document.getElementById('btn-confirm-delete-student').onclick = () => {
-                    apiCall(`/students/delete/${studentRow.dataset.id}`, 'DELETE')
+                    apiCall(`/students/delete/${studentRow.dataset.id}?groupId=${groupItem.dataset.id}`, 'DELETE')
                         .then(res => {
                             modal.hide();
                             if (res.success) {
-                                const groupItem = studentRow.closest('li[data-id]');
-                                studentRow.remove();
-                                const tbody = groupItem.querySelector('tbody');
-                                if (tbody) {
-                                    tbody.querySelectorAll('tr').forEach((row, i) => {
-                                        row.querySelector('td:first-child').textContent = i + 1;
-                                    });
-                                }
                                 const newCount = parseInt(groupItem.dataset.studentCount) - 1;
                                 groupItem.dataset.studentCount = newCount;
                                 const badge = groupItem.querySelector('.badge');
                                 if (badge) badge.textContent = `${newCount} stu`;
-                                if (newCount === 0) {
-                                    groupItem.querySelector('.accordion-body').innerHTML = '<p class="text-muted mb-0">No students in this group.</p>';
-                                }
                             }
                         });
                 };
@@ -163,13 +158,21 @@ if (document.getElementById('groups-accordion')) {
 
             const item = e.target.closest('li[data-id]');
             const studentCount = parseInt(item.dataset.studentCount ?? '0');
+            const groupName = item.querySelector('strong').textContent;
+            const warning = document.getElementById('delete-group-warning');
+            const confirmBtn = document.getElementById('btn-confirm-delete');
+            document.getElementById('delete-group-name').textContent = groupName;
             if (studentCount > 0) {
-                new bootstrap.Modal(document.getElementById('cannotDeleteModal')).show();
-                return;
+                document.getElementById('delete-group-count').textContent = studentCount;
+                warning.classList.remove('d-none');
+                confirmBtn.textContent = 'Delete students and group';
+            } else {
+                warning.classList.add('d-none');
+                confirmBtn.textContent = 'Delete';
             }
             const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-            document.getElementById('btn-confirm-delete').onclick = () => {
-                apiCall(`/groups/delete/${item.dataset.id}`, 'DELETE')
+            confirmBtn.onclick = () => {
+                apiCall(`/groups/delete/${item.dataset.id}?deleteStudents=${studentCount > 0}`, 'DELETE')
                     .then(res => { modal.hide(); if (res.success) searchGroups(currentPage); });
             };
             modal.show();
@@ -188,6 +191,17 @@ if (document.getElementById('groups-accordion')) {
         if (e.target.classList.contains('btn-page')) {
             const page = parseInt(e.target.dataset.page);
             if (!isNaN(page)) searchGroups(page);
+        }
+
+        if (e.target.classList.contains('btn-page-students')) {
+            const page = parseInt(e.target.dataset.page);
+            if (isNaN(page)) return;
+            const groupItem = e.target.closest('li[data-id]');
+            const groupId = groupItem.dataset.id;
+            const container = groupItem.querySelector('.students-container');
+            fetch(`/students/getstudent?groupId=${groupId}&page=${page}`)
+                .then(r => r.text())
+                .then(html => { container.innerHTML = html; });
         }
 
         if (e.target.classList.contains('btn-export-students')) {
@@ -220,6 +234,7 @@ document.getElementById('btn-confirm-import-students')?.addEventListener('click'
                 if (res.errors?.length)
                     html += `<ul class="text-danger small mt-2 mb-0">${res.errors.map(e => `<li>${e}</li>`).join('')}</ul>`;
                 resultDiv.innerHTML = html;
+                document.getElementById('import-students-file').value = '';
                 if (res.imported > 0) {
                     const groupItem = document.querySelector(`li[data-id="${currentImportGroupId}"]`);
                     if (groupItem) {
@@ -229,7 +244,8 @@ document.getElementById('btn-confirm-import-students')?.addEventListener('click'
                         if (badge) badge.textContent = `${newCount} stu`;
                         const container = groupItem.querySelector('.students-container');
                         if (container) {
-                            fetch(`/students/getstudent?groupId=${currentImportGroupId}`)
+                            const currentPage = container.querySelector('.students-page')?.dataset.currentPage ?? '1';
+                            fetch(`/students/getstudent?groupId=${currentImportGroupId}&page=${currentPage}`)
                                 .then(r => r.text())
                                 .then(html => { container.innerHTML = html; });
                         }

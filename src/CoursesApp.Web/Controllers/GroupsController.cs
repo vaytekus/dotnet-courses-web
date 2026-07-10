@@ -49,8 +49,8 @@ public class GroupsController(
     }
 
     [HttpDelete]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    public async Task<IActionResult> Delete(Guid id, bool deleteStudents = false, CancellationToken ct = default)
     {
-        return await ExecuteAsync(() => groupService.DeleteGroupAsync(id, ct), "Error deleting group");
+        return await ExecuteAsync(() => groupService.DeleteGroupAsync(id, deleteStudents, ct), "Error deleting group");
     }
 }

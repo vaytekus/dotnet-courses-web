@@ -7,7 +7,8 @@ namespace CoursesApp.Web.Controllers;
 public class AuthController(
     UserManager<AppUser> userManager,
     SignInManager<AppUser> signInManager,
-    IEmailService emailService) : Controller
+    IEmailService emailService,
+    IEmailDomainValidator domainValidator) : Controller
 {
     [HttpGet]
     [AllowAnonymous]
@@ -29,20 +30,19 @@ public class AuthController(
         var result = await signInManager.PasswordSignInAsync(
             dto.Email, dto.Password, dto.RememberMe, lockoutOnFailure: false);
 
-        if (result.Succeeded)
+        if (result.IsNotAllowed)
         {
-            var user = await userManager.FindByNameAsync(dto.Email);
-            if (user is not null && !await userManager.IsEmailConfirmedAsync(user))
-            {
-                await signInManager.SignOutAsync();
-                ModelState.AddModelError(string.Empty, "Please confirm your email before logging in.");
-                return View(dto);
-            }
-            return LocalRedirect(returnUrl ?? "/");
+            ModelState.AddModelError(string.Empty, "Please confirm your email before logging in.");
+            return View(dto);
         }
         
-        ModelState.AddModelError(string.Empty, "Invalid email or password");
-        return View(dto);
+        if (!result.Succeeded)
+        {
+            ModelState.AddModelError(string.Empty, "Invalid email or password");
+            return View(dto);
+        }
+        
+        return LocalRedirect(returnUrl ?? "/");
     }
 
     [HttpGet]
@@ -54,7 +54,7 @@ public class AuthController(
 
     [HttpPost]
     [AllowAnonymous]
-    public async Task<IActionResult> Register(RegisterDto dto)
+    public async Task<IActionResult> Register(RegisterDto dto, CancellationToken ct)
     {
         if (!ModelState.IsValid)
         {
@@ -64,6 +64,12 @@ public class AuthController(
         if (dto.Password != dto.ConfirmPassword)
         {
             ModelState.AddModelError(string.Empty, "Passwords do not match");
+            return View(dto);
+        }
+
+        if (!await domainValidator.HasMxRecordAsync(dto.Email, ct))
+        {
+            ModelState.AddModelError(nameof(dto.Email), "Email domain does not exist or cannot receive mail");
             return View(dto);
         }
 
@@ -92,7 +98,8 @@ public class AuthController(
         await emailService.SendEmailAsync(
             user.Email!,
             "Confirm your email",
-            $"<p>To confirm your account, follow the <a href='{confirmLink}'>link</a>.</p>"
+            $"<p>To confirm your account, follow the <a href='{confirmLink}'>link</a>.</p>",
+            ct
         );
         
         return RedirectToAction("RegisterConfirmation");

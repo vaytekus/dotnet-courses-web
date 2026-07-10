@@ -25,6 +25,14 @@ public class GroupService(
     {
         _logger.LogInformation("Loading groups page: search={Search}, courseId={CourseId}, filter={Filter}, page={Page}", search, courseId, filter, page);
         var (groups, total) = await _uow.Groups.GetFilteredGroupAsync(search, courseId, filter, page, pageSize, ct);
+
+        var totalPages = total > 0 ? (int)Math.Ceiling((double)total / pageSize) : 1;
+        if (page > totalPages)
+        {
+            page = totalPages;
+            (groups, total) = await _uow.Groups.GetFilteredGroupAsync(search, courseId, filter, page, pageSize, ct);
+        }
+
         if (!_cache.TryGetValue(_coursesCacheKey, out List<Course>? courses))
         {
             courses = await _uow.Courses.GetAllCoursesAsync(ct);
@@ -90,16 +98,22 @@ public class GroupService(
         await _uow.Groups.UnassignTeacherAsync(teacherId, ct);
     }
 
-    public async Task<bool> DeleteGroupAsync(Guid id, CancellationToken ct = default)
+    public async Task<bool> DeleteGroupAsync(Guid id, bool deleteStudents = false, CancellationToken ct = default)
     {
         _logger.LogInformation("Deleting group {Id}", id);
         var group = await _uow.Groups.GetByIdAsync(id, ct)
                     ?? throw new KeyNotFoundException($"Group with id {id} not found");
         if (group.Students.Any())
         {
-            _logger.LogWarning("Cannot delete group {Id} — it has {Count} students", id, group.Students.Count);
-            return false;
+            if (!deleteStudents)
+            {
+                _logger.LogWarning("Cannot delete group {Id} — it has {Count} students", id, group.Students.Count);
+                return false;
+            }
+
+            await _uow.Students.DeleteAllByGroupAsync(id, ct);
         }
+        
         _uow.Groups.Delete(group);
         await _uow.SaveAsync(ct);
         _logger.LogInformation("Group {Id} deleted successfully", id);

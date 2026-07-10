@@ -1,4 +1,4 @@
-@model List<CoursesApp.Web.DTOs.StudentDto>
+@model CoursesApp.Web.Models.GroupStudentsPageViewModel
 
 @{
     Layout = null;
@@ -7,46 +7,71 @@
 <div class="d-flex justify-content-end gap-2 mb-2 pt-3">
     <button class="btn btn-sm btn-outline-success btn-export-students" type="button">↓ Export</button>
     <button class="btn btn-sm btn-outline-primary btn-import-students" type="button">↑ Import</button>
-    @if (Model.Any())
+    @if (Model.TotalCount > 0)
     {
         <button class="btn btn-sm btn-warning btn-clear-students" type="button">Clear all students</button>
     }
 </div>
 
-@if (!Model.Any())
+@if (Model.TotalCount == 0)
 {
     <p class="text-muted mb-0">No students in this group.</p>
 }
 else
 {
-    <table class="table table-sm mb-0" style="table-layout: fixed">
-        <colgroup>
-            <col style="width: 50px">
-            <col>
-            <col>
-            <col>
-        </colgroup>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>First Name</th>
-                <th>Last Name</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            @{ int j = 1; }
-            @foreach (var student in Model)
-            {
-                <tr data-id="@student.Id">
-                    <td>@(j++)</td>
-                    <td>@student.FirstName</td>
-                    <td>@student.LastName</td>
-                    <td>
-                        <button class="btn btn-sm btn-danger btn-delete">Delete</button>
-                    </td>
+    <div class="students-page" data-current-page="@Model.Page">
+        <table class="table table-sm mb-0" style="table-layout: fixed">
+            <colgroup>
+                <col style="width: 50px">
+                <col>
+                <col>
+                <col>
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Action</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < Model.Students.Count; i++)
+                {
+                    <tr data-id="@Model.Students[i].Id">
+                        <td>@((Model.Page - 1) * Model.PageSize + i + 1)</td>
+                        <td>@Model.Students[i].FirstName</td>
+                        <td>@Model.Students[i].LastName</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger btn-delete">Delete</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (Model.TotalPages > 1)
+        {
+            <div class="text-center mt-2">
+                <button class="btn btn-sm btn-outline-secondary btn-page-students"
+                        data-page="@(Model.Page - 1)" disabled="@(Model.Page == 1)">«</button>
+
+                @for (int i = 1; i <= Model.TotalPages; i++)
+                {
+                    if (i == 1 || i == Model.TotalPages || (i >= Model.Page - 2 && i <= Model.Page + 2))
+                    {
+                        <button class="btn btn-sm @(i == Model.Page ? "btn-primary" : "btn-outline-secondary") btn-page-students"
+                                data-page="@i">@i</button>
+                    }
+                    else if (i == Model.Page - 3 || i == Model.Page + 3)
+                    {
+                        <span class="px-1">...</span>
+                    }
+                }
+
+                <button class="btn btn-sm btn-outline-secondary btn-page-students"
+                        data-page="@(Model.Page + 1)" disabled="@(Model.Page == Model.TotalPages)">»</button>
+            </div>
+        }
+    </div>
 }

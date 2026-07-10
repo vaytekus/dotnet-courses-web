@@ -16,6 +16,7 @@ public static class ServiceCollectionExtensions
 
         services.AddIdentity<AppUser, IdentityRole>(options =>
             {
+                options.SignIn.RequireConfirmedEmail = true;
                 options.Password.RequireDigit = true;
                 options.Password.RequiredLength = 6;
                 options.Password.RequireNonAlphanumeric = false;

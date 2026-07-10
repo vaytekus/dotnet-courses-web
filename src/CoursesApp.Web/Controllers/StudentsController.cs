@@ -68,11 +68,21 @@ public class StudentsController(
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetStudent(Guid groupId, CancellationToken ct)
+    public async Task<IActionResult> GetStudent(Guid groupId, int page = 1, CancellationToken ct = default)
     {
-        logger.LogInformation("Loading students for group {GroupId}", groupId);
-        var students = await studentService.GetStudentsByGroupAsync(groupId, ct);
-        return PartialView("~/Views/Groups/_StudentsBody.cshtml", students);
+        logger.LogInformation("Loading students for group {GroupId}, page {Page}", groupId, page);
+        var (students, total, effectivePage) = await GetPageAsync(null, groupId, page, ct);
+        
+        var model = new GroupStudentsPageViewModel
+        {
+            Students = students,
+            GroupId = groupId,
+            Page = effectivePage,
+            PageSize = PageSize,
+            TotalCount = total
+        };
+        
+        return PartialView("~/Views/Groups/_StudentsBody.cshtml", model);
     }
 
     [HttpGet]
@@ -110,16 +120,30 @@ public class StudentsController(
 
     private async Task<StudentsIndexViewModel> BuildViewModelAsync(string? search, Guid? groupId, int page, CancellationToken ct = default)
     {
-        var (students, total) = await studentService.GetPageAsync(search, groupId, page, PageSize, ct);
         var groups = await groupService.GetAllSelectAsync(ct);
+        var (students, total, effectivePage) = await GetPageAsync(search, groupId, page, ct);
         
         return new StudentsIndexViewModel
         {
             Students = students,
             Groups = groups,
-            Page = page,
+            Page = effectivePage,
             PageSize = PageSize,
             TotalCount = total
         };
+    }
+
+    private async Task<(List<StudentDto> students, int total, int page)> GetPageAsync(string? search, Guid? groupId, int page, CancellationToken ct = default)
+    {
+        var (students, total) = await studentService.GetPageAsync(search, groupId, page, PageSize, ct);
+        var totalPages = total > 0 ? (int)Math.Ceiling((double)total / PageSize) : 1;
+
+        if (page > totalPages)
+        {
+            page = totalPages;
+            (students, total) = await studentService.GetPageAsync(search, groupId, page, PageSize, ct);
+        }
+        
+        return (students, total, page);
     }
 }

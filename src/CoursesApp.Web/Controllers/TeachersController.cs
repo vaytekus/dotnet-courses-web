@@ -65,13 +65,26 @@ public class TeachersController(
 
     private async Task<TeachersIndexViewModel> BuildViewModelAsync(string? search, int page, CancellationToken ct = default)
     {
-        var (teachers, total) = await teacherService.GetPageAsync(search, page, PageSize, ct);
+        var (teachers, total, effectivePage) = await GetPageAsync(search, page, ct);
         return new TeachersIndexViewModel
         {
             Teachers = teachers,
-            Page = page,
+            Page = effectivePage,
             TotalCount = total,
             PageSize = PageSize
         };
+    }
+    
+    private async Task<(List<TeacherDto> teachers, int total, int page)> GetPageAsync(string? search, int page, CancellationToken ct = default)
+    {
+        var (teachers, total) = await teacherService.GetPageAsync(search, page, PageSize, ct);
+        var totalPages = total > 0 ? (int)Math.Ceiling((double)total / PageSize) : 1;
+        if (page > totalPages)
+        {
+            page = totalPages;
+            (teachers, total) = await teacherService.GetPageAsync(search, page, PageSize, ct);
+        }
+
+        return (teachers, total, page);
     }
 }
