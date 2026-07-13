@@ -17,7 +17,7 @@ public class StudentsController(
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         logger.LogInformation("Loading students page");
-        var model = await BuildViewModelAsync(null, null, 1, ct);
+        var model = await BuildViewModelAsync(null, null, StudentSortKey.LastName, false, 1, ct);
         return View(model);
     }
 
@@ -36,10 +36,14 @@ public class StudentsController(
     }
 
     [HttpGet]
-    public async Task<IActionResult> Search(string? search, Guid? groupId, int page = 1, CancellationToken ct = default)
+    public async Task<IActionResult> Search(
+        string? search, Guid? groupId, int page = 1, 
+        StudentSortKey sortKey = StudentSortKey.LastName, bool sortDesc = false, 
+        CancellationToken ct = default)
     {
-        logger.LogInformation("Searching students: search={Search}, groupId={GroupId}, page={Page}", search, groupId, page);
-        var model = await BuildViewModelAsync(search, groupId, page, ct);
+        logger.LogInformation("Searching students: search={Search}, groupId={GroupId}, sort={Sort} desc={Desc}, page={Page}",
+            search, groupId, sortKey, sortDesc, page);
+        var model = await BuildViewModelAsync(search, groupId, sortKey, sortDesc, page, ct);
         return PartialView("_StudentsTableBody", model);
     }
 
@@ -68,10 +72,13 @@ public class StudentsController(
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetStudent(Guid groupId, int page = 1, CancellationToken ct = default)
+    public async Task<IActionResult> GetStudent(
+        Guid groupId, StudentSortKey sortKey = StudentSortKey.LastName, bool sortDesc = false, 
+        int page = 1, CancellationToken ct = default)
     {
-        logger.LogInformation("Loading students for group {GroupId}, page {Page}", groupId, page);
-        var (students, total, effectivePage) = await GetPageAsync(null, groupId, page, ct);
+        logger.LogInformation("Loading students for group {GroupId}, page {Page}, sort={Sort} desc={Desc}", groupId, page, sortKey, sortDesc);
+        var (students, total, effectivePage) = await GetPageAsync(
+            null, groupId, sortKey, sortDesc, page, ct);
         
         var model = new GroupStudentsPageViewModel
         {
@@ -79,7 +86,9 @@ public class StudentsController(
             GroupId = groupId,
             Page = effectivePage,
             PageSize = PageSize,
-            TotalCount = total
+            TotalCount = total,
+            SortKey = sortKey,
+            SortDesc = sortDesc
         };
         
         return PartialView("~/Views/Groups/_StudentsBody.cshtml", model);
@@ -118,10 +127,13 @@ public class StudentsController(
         }
     }
 
-    private async Task<StudentsIndexViewModel> BuildViewModelAsync(string? search, Guid? groupId, int page, CancellationToken ct = default)
+    private async Task<StudentsIndexViewModel> BuildViewModelAsync(
+        string? search, Guid? groupId, 
+        StudentSortKey sortKey, bool sortDesc, int page, 
+        CancellationToken ct = default)
     {
         var groups = await groupService.GetAllSelectAsync(ct);
-        var (students, total, effectivePage) = await GetPageAsync(search, groupId, page, ct);
+        var (students, total, effectivePage) = await GetPageAsync(search, groupId, sortKey, sortDesc, page, ct);
         
         return new StudentsIndexViewModel
         {
@@ -129,19 +141,24 @@ public class StudentsController(
             Groups = groups,
             Page = effectivePage,
             PageSize = PageSize,
-            TotalCount = total
+            TotalCount = total,
+            SortKey = sortKey,
+            SortDesc = sortDesc
         };
     }
 
-    private async Task<(List<StudentDto> students, int total, int page)> GetPageAsync(string? search, Guid? groupId, int page, CancellationToken ct = default)
+    private async Task<(List<StudentDto> students, int total, int page)> GetPageAsync(
+        string? search, Guid? groupId, 
+        StudentSortKey sortKey, bool sortDesc, int page, 
+        CancellationToken ct = default)
     {
-        var (students, total) = await studentService.GetPageAsync(search, groupId, page, PageSize, ct);
+        var (students, total) = await studentService.GetPageAsync(search, groupId, sortKey, sortDesc, page, PageSize, ct);
         var totalPages = total > 0 ? (int)Math.Ceiling((double)total / PageSize) : 1;
 
         if (page > totalPages)
         {
             page = totalPages;
-            (students, total) = await studentService.GetPageAsync(search, groupId, page, PageSize, ct);
+            (students, total) = await studentService.GetPageAsync(search, groupId, sortKey, sortDesc, page, PageSize, ct);
         }
         
         return (students, total, page);

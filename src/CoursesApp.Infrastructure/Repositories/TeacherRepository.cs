@@ -1,3 +1,5 @@
+using CoursesApp.Infrastructure.Extensions;
+
 namespace CoursesApp.Infrastructure.Repositories;
 
 public class TeacherRepository(AppDbContext context) : RepositoryBase(context), ITeacherRepository
@@ -7,7 +9,9 @@ public class TeacherRepository(AppDbContext context) : RepositoryBase(context), 
         return await Context.Teachers.ToListAsync(ct);
     }
 
-    public async Task<(List<Teacher>, int TotalCount)> GetFilteredTeachersAsync(string? search, int page, int pageSize, CancellationToken ct = default)
+    public async Task<(List<Teacher>, int TotalCount)> GetFilteredTeachersAsync(
+        string? search, TeacherSortKey sortKey, bool sortDesc, 
+        int page, int pageSize, CancellationToken ct = default)
     {
         var query = Context.Teachers
             .AsQueryable();
@@ -20,6 +24,7 @@ public class TeacherRepository(AppDbContext context) : RepositoryBase(context), 
         
         var total = await query.CountAsync(ct);
         var teachers = await query
+            .ApplySort(sortKey, sortDesc)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);

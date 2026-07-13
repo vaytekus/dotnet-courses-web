@@ -19,7 +19,10 @@
 }
 else
 {
-    <div class="students-page" data-current-page="@Model.Page">
+    <div class="students-page"
+         data-current-page="@Model.Page"
+         data-current-sort-key="@(Model.SortKey == StudentSortKey.FirstName ? "firstName" : "lastName")"
+         data-current-sort-desc="@Model.SortDesc.ToString().ToLower()">
         <table class="table table-sm mb-0" style="table-layout: fixed">
             <colgroup>
                 <col style="width: 50px">
@@ -30,8 +33,20 @@ else
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>First Name</th>
-                    <th>Last Name</th>
+                    <th class="sortable" data-sort-key="firstName" style="cursor: pointer; user-select: none">
+                        First Name
+                        @if (Model.SortKey == StudentSortKey.FirstName)
+                        {
+                            <span>@(Model.SortDesc ? "▼" : "▲")</span>
+                        }
+                    </th>
+                    <th class="sortable" data-sort-key="lastName" style="cursor: pointer; user-select: none">
+                        Last Name
+                        @if (Model.SortKey == StudentSortKey.LastName)
+                        {
+                            <span>@(Model.SortDesc ? "▼" : "▲")</span>
+                        }
+                    </th>
                     <th>Action</th>
                 </tr>
             </thead>

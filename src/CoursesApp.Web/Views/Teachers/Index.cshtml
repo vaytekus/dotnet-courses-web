@@ -2,6 +2,12 @@
 
 @section Scripts
 {
+    <script>
+        window.initialSort = {
+            key: '@(Model.SortKey == TeacherSortKey.FirstName ? "firstName" : "lastName")',
+            desc: @Model.SortDesc.ToString().ToLower()
+        };
+    </script>
     <script src="~/js/teachers.js"></script>
 }
 
@@ -50,8 +56,12 @@
     <thead>
     <tr>
         <th>#</th>
-        <th>First Name</th>
-        <th>Last Name</th>
+        <th class="sortable" data-sort-key="firstName" style="cursor: pointer; user-select: none">
+            First Name <span class="sort-arrow"></span>
+        </th>
+        <th class="sortable" data-sort-key="lastName" style="cursor: pointer; user-select: none">
+            Last Name <span class="sort-arrow"></span>
+        </th>
         <th>Action</th>
     </tr>
     </thead>

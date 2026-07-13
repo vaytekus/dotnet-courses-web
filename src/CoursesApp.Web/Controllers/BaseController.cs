@@ -1,3 +1,5 @@
+using CoursesApp.Domain.Exceptions;
+
 namespace CoursesApp.Web.Controllers;
 
 public abstract class BaseController(
@@ -56,6 +58,12 @@ public abstract class BaseController(
 
     private IActionResult Fail(Exception ex, string errorMessage)
     {
+        if (ex is DuplicateNameException)
+        {
+            logger.LogWarning(ex, errorMessage);
+            return Json(new { success = false, message = ex.Message });
+        }
+        
         if (ex is KeyNotFoundException)
         {
             logger.LogWarning(ex, errorMessage);

@@ -75,4 +75,17 @@ public class GroupRepository(AppDbContext context) : RepositoryBase(context), IG
     {
         Context.Groups.Remove(group);
     }
+
+    public Task<bool> NameExistsAsync(string name, Guid? excludeId, CancellationToken ct = default)
+    {
+        var query = Context.Groups
+            .Where(g => g.Name == name);
+
+        if (excludeId.HasValue)
+        {
+            query = query.Where(g => g.Id != excludeId);
+        }
+
+        return query.AnyAsync(ct);
+    }
 }

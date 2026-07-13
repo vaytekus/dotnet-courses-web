@@ -1,3 +1,4 @@
+using CoursesApp.Domain.Exceptions;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace CoursesApp.Web.Services;
@@ -65,11 +66,18 @@ public class GroupService(
     public async Task AddGroupAsync(GroupCreateDto dto, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(dto);
-        _logger.LogInformation("Adding group {Name} for course {CourseId}", dto.Name, dto.CourseId);
+        var name = dto.Name.Trim();
+        
+        if (await _uow.Groups.NameExistsAsync(name, null, ct))
+        {
+            throw new DuplicateNameException($"Group with name '{name}' already exists");
+        }
+        
+        _logger.LogInformation("Adding group {Name} for course {CourseId}", name, dto.CourseId);
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = dto.Name,
+            Name = name,
             CourseId = dto.CourseId,
             TeacherId = dto.TeacherId,
         };
@@ -82,10 +90,17 @@ public class GroupService(
     public async Task UpdateGroupAsync(GroupEditDto dto, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(dto);
+        var name = dto.Name.Trim();
+        
+        if (await _uow.Groups.NameExistsAsync(name, dto.Id, ct))
+        {
+            throw new DuplicateNameException($"Group with name '{name}' already exists");
+        }
+        
         _logger.LogInformation("Updating group {Id}", dto.Id);
         var group = await _uow.Groups.GetByIdAsync(dto.Id, ct)
                     ?? throw new KeyNotFoundException($"Group with id {dto.Id} not found");
-        group.Name = dto.Name;
+        group.Name = name;
         group.TeacherId = dto.TeacherId;
         _uow.Groups.Update(group);
         await _uow.SaveAsync(ct);

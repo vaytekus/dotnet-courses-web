@@ -50,6 +50,11 @@ function apiCall(url, method = 'POST', data = null) {
     return fetch(url, options).then(r => r.json());
 }
 
+function showError(message) {
+    document.getElementById('error-modal-message').textContent = message;
+    new bootstrap.Modal(document.getElementById('errorModal')).show();
+}
+
 function enterEditMode(el) {
     el.querySelectorAll('.view-mode').forEach(e => e.classList.add('d-none'));
     el.querySelectorAll('.edit-mode').forEach(e => e.classList.remove('d-none'));

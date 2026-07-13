@@ -7,10 +7,11 @@ public class StudentService(
     private readonly IUnitOfWork _uow = uow ?? throw new ArgumentNullException(nameof(uow));
     private readonly ILogger<StudentService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-    public async Task<(List<StudentDto> Students, int TotalCount)> GetPageAsync(string? search, Guid? id, int page, int pageSize, CancellationToken ct = default)
+    public async Task<(List<StudentDto> Students, int TotalCount)> GetPageAsync(
+        string? search, Guid? id, StudentSortKey sortKey, bool sortDesc, int page, int pageSize, CancellationToken ct = default)
     {
-        _logger.LogInformation("Getting page {Page} of {PageSize}", page, pageSize);
-        var (students, total) = await _uow.Students.GetFilteredStudentAsync(search, id, page, pageSize, ct);
+        _logger.LogInformation("Getting page {Page} of {PageSize}, sort={SortKey} desc={SortDesc}", page, pageSize, sortKey, sortDesc);
+        var (students, total) = await _uow.Students.GetFilteredStudentAsync(search, id, page, pageSize, sortKey, sortDesc, ct);
         return (students.ToDtoList(), total);
     }
 

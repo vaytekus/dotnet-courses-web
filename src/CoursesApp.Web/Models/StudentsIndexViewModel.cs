@@ -8,4 +8,6 @@ public class StudentsIndexViewModel
     public int PageSize { get; set; } = 10;
     public int TotalCount { get; set; }
     public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+    public StudentSortKey SortKey { get; set; } = StudentSortKey.LastName;
+    public bool SortDesc { get; set;}
 }

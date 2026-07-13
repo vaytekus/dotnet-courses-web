@@ -36,13 +36,32 @@ connection.on("StudentUpdated", (studentId, firstName, lastName, groupId) => {
 
 let currentPage = 1;
 let searchAbortController = null;
+let currentSort = window.initialSort ?? { key: 'lastName', desc: false };
+
+function updateSortArrows() {
+    document.querySelectorAll('#students-table thead th[data-sort-key]').forEach(th => {
+        const arrow = th.querySelector('.sort-arrow');
+        if (!arrow) return;
+        if (th.dataset.sortKey === currentSort.key) {
+            arrow.textContent = currentSort.desc ? ' ▼' : ' ▲';
+        } else {
+            arrow.textContent = '';
+        }
+    });
+}
 
 const _doSearchStudents = debounce(() => {
     if (searchAbortController) searchAbortController.abort();
     searchAbortController = new AbortController();
     const search = document.getElementById('search-input')?.value.trim() ?? '';
     const groupId = document.getElementById('filteringByGroup')?.value ?? '';
-    const params = new URLSearchParams({ search, groupId, page: currentPage });
+    const params = new URLSearchParams({
+        search,
+        groupId,
+        sortKey: currentSort.key,
+        sortDesc: currentSort.desc,
+        page: currentPage
+    });
     fetch(`/students/search?${params}`, { signal: searchAbortController.signal })
         .then(r => r.text())
         .then(html => { document.querySelector('#students-table tbody').innerHTML = html; })
@@ -128,6 +147,22 @@ if (document.getElementById('students-table')) {
             searchStudents(parseInt(e.target.dataset.page));
         }
     });
+
+    document.querySelectorAll('#students-table thead th[data-sort-key]').forEach(th => {
+        th.addEventListener('click', () => {
+            const key = th.dataset.sortKey;
+            if (currentSort.key === key) {
+                currentSort.desc = !currentSort.desc;
+            } else {
+                currentSort.key = key;
+                currentSort.desc = false;
+            }
+            updateSortArrows();
+            searchStudents(currentPage);
+        });
+    });
+
+    updateSortArrows();
 }
 
 const addForm = document.getElementById('add-student-form');

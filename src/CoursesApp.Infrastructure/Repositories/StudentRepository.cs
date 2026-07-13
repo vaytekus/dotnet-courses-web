@@ -1,3 +1,5 @@
+using CoursesApp.Infrastructure.Extensions;
+
 namespace CoursesApp.Infrastructure.Repositories;
 
 public class StudentRepository(AppDbContext context) : RepositoryBase(context), IStudentRepository
@@ -10,7 +12,13 @@ public class StudentRepository(AppDbContext context) : RepositoryBase(context), 
     }
 
     public async Task<(List<Student>, int TotalCount)> GetFilteredStudentAsync(
-        string? searchQuery, Guid? groupId, int page, int pageSize, CancellationToken ct = default)
+        string? searchQuery, 
+        Guid? groupId, 
+        int page, 
+        int pageSize, 
+        StudentSortKey sortKey,
+        bool sortDesc,
+        CancellationToken ct = default)
     {
         var query = Context.Students
             .Include(s => s.Group)
@@ -31,10 +39,11 @@ public class StudentRepository(AppDbContext context) : RepositoryBase(context), 
         
         var total = await query.CountAsync(ct);
         var students = await query
+            .ApplySort(sortKey, sortDesc)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
-        
+
         return (students, total);
     }
     

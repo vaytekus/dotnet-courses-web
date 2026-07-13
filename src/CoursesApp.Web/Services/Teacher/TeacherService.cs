@@ -7,9 +7,11 @@ public class TeacherService(
     private readonly IUnitOfWork _uow = uow ?? throw new ArgumentNullException(nameof(uow));
     private readonly ILogger<TeacherService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-    public async Task<(List<TeacherDto> Teachers, int TotalCount)> GetPageAsync(string? search, int page, int pageSize, CancellationToken ct = default)
+    public async Task<(List<TeacherDto> Teachers, int TotalCount)> GetPageAsync(
+        string? search, TeacherSortKey sortKey, bool sortDesc, 
+        int page, int pageSize, CancellationToken ct = default)
     {
-        var (teachers, total) = await _uow.Teachers.GetFilteredTeachersAsync(search, page, pageSize, ct);
+        var (teachers, total) = await _uow.Teachers.GetFilteredTeachersAsync(search, sortKey, sortDesc, page, pageSize, ct);
         return (teachers.ToDtoList(), total);
     }
 

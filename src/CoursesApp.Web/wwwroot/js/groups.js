@@ -29,6 +29,19 @@ connection.on("TeacherDeleted", (teacherId) => {
         });
 });
 
+function getStudentsSort(collapse) {
+    const page = collapse.querySelector('.students-page');
+    return {
+        key: page?.dataset.currentSortKey ?? 'lastName',
+        desc: page?.dataset.currentSortDesc === 'true',
+        page: page?.dataset.currentPage ?? '1'
+    };
+}
+
+function buildStudentsUrl(groupId, page, sortKey, sortDesc) {
+    return `/students/getstudent?groupId=${groupId}&page=${page}&sortKey=${sortKey}&sortDesc=${sortDesc}`;
+}
+
 connection.on("StudentUpdated", (studentId, firstName, lastName, groupId) => {
     const collapse = document.getElementById(`collapse-${groupId}`);
     if (!collapse) return;
@@ -50,8 +63,8 @@ connection.on("StudentDeleted", (studentId, groupId) => {
 
     if (collapse.classList.contains('show')) {
         const container = collapse.querySelector('.students-container');
-        const currentPage = collapse.querySelector('.students-page')?.dataset.currentPage ?? '1';
-        fetch(`/students/getstudent?groupId=${groupId}&page=${currentPage}`)
+        const s = getStudentsSort(collapse);
+        fetch(buildStudentsUrl(groupId, s.page, s.key, s.desc))
             .then(r => r.text())
             .then(html => { container.innerHTML = html; });
     } else if (collapse.querySelector('.students-container')?.innerHTML.trim()) {
@@ -65,8 +78,8 @@ connection.on("StudentAdded", (groupId) => {
 
     if (collapse.classList.contains('show')) {
         const container = collapse.querySelector('.students-container');
-        const currentPage = collapse.querySelector('.students-page')?.dataset.currentPage ?? '1';
-        fetch(`/students/getstudent?groupId=${groupId}&page=${currentPage}`)
+        const s = getStudentsSort(collapse);
+        fetch(buildStudentsUrl(groupId, s.page, s.key, s.desc))
             .then(r => r.text())
             .then(html => { container.innerHTML = html; });
     } else if (collapse.querySelector('.students-container')?.innerHTML.trim()) {
@@ -127,7 +140,10 @@ if (document.getElementById('groups-accordion')) {
             const name = item.querySelector('input[name="groupName"]').value;
             const teacherId = item.querySelector('select[name="teacherId"]').value || null;
             apiCall('/groups/edit', 'POST', { id, name, teacherId })
-                .then(res => { if (res.success) searchGroups(currentPage); });
+                .then(res => {
+                    if (res.success) searchGroups(currentPage);
+                    else showError(res.message);
+                });
         }
 
         if (e.target.classList.contains('btn-delete')) {
@@ -199,7 +215,23 @@ if (document.getElementById('groups-accordion')) {
             const groupItem = e.target.closest('li[data-id]');
             const groupId = groupItem.dataset.id;
             const container = groupItem.querySelector('.students-container');
-            fetch(`/students/getstudent?groupId=${groupId}&page=${page}`)
+            const collapse = groupItem.querySelector('.accordion-collapse');
+            const s = getStudentsSort(collapse);
+            fetch(buildStudentsUrl(groupId, page, s.key, s.desc))
+                .then(r => r.text())
+                .then(html => { container.innerHTML = html; });
+        }
+
+        const sortTh = e.target.closest('.students-page thead th.sortable');
+        if (sortTh) {
+            const groupItem = sortTh.closest('li[data-id]');
+            const groupId = groupItem.dataset.id;
+            const container = groupItem.querySelector('.students-container');
+            const collapse = groupItem.querySelector('.accordion-collapse');
+            const s = getStudentsSort(collapse);
+            const newKey = sortTh.dataset.sortKey;
+            const newDesc = (s.key === newKey) ? !s.desc : false;
+            fetch(buildStudentsUrl(groupId, s.page, newKey, newDesc))
                 .then(r => r.text())
                 .then(html => { container.innerHTML = html; });
         }
@@ -244,8 +276,9 @@ document.getElementById('btn-confirm-import-students')?.addEventListener('click'
                         if (badge) badge.textContent = `${newCount} stu`;
                         const container = groupItem.querySelector('.students-container');
                         if (container) {
-                            const currentPage = container.querySelector('.students-page')?.dataset.currentPage ?? '1';
-                            fetch(`/students/getstudent?groupId=${currentImportGroupId}&page=${currentPage}`)
+                            const collapse = groupItem.querySelector('.accordion-collapse');
+                            const s = getStudentsSort(collapse);
+                            fetch(buildStudentsUrl(currentImportGroupId, s.page, s.key, s.desc))
                                 .then(r => r.text())
                                 .then(html => { container.innerHTML = html; });
                         }
@@ -289,7 +322,10 @@ if (addForm) {
             name: nameInput.value,
             courseId: courseSelect.value,
             teacherId: teacherSelect.value || null
-        }).then(res => { if (res.success) { resetForm(); searchGroups(currentPage); } });
+        }).then(res => {
+            if (res.success) { resetForm(); searchGroups(currentPage); }
+            else showError(res.message);
+        });
     }
 
     nameInput.addEventListener('input', validateAddForm);

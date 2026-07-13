@@ -2,7 +2,8 @@ namespace CoursesApp.Web.Services;
 
 public interface IStudentService
 {
-    Task<(List<StudentDto> Students, int TotalCount)> GetPageAsync(string? search, Guid? id, int page, int pageSize, CancellationToken ct = default);
+    Task<(List<StudentDto> Students, int TotalCount)> GetPageAsync(
+        string? search, Guid? id, StudentSortKey sortKey, bool sortDesc, int page, int pageSize, CancellationToken ct = default);
     Task<List<StudentDto>> GetStudentsByGroupAsync(Guid groupId, CancellationToken ct = default);
     Task AddStudentAsync(StudentDto studentDto, CancellationToken ct = default);
     Task UpdateStudentAsync(StudentEditDto dto, CancellationToken ct = default);

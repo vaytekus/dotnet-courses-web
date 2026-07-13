@@ -1,3 +1,4 @@
+using CoursesApp.Domain.Exceptions;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace CoursesApp.Tests.Services;
@@ -109,5 +110,58 @@ public class GroupServiceTests
         Assert.True(result);
         _groups.Verify(r => r.Delete(group), Times.Once);
         _uow.Verify(u => u.SaveAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddGroupAsync_ThrowsDuplicateNameException_WhenNameExists()
+    {
+        _groups.Setup(r => r.NameExistsAsync("Group A", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var dto = new GroupCreateDto("Group A", Guid.NewGuid(), null);
+
+        await Assert.ThrowsAsync<DuplicateNameException>(() => _sut.AddGroupAsync(dto));
+        _groups.Verify(r => r.Add(It.IsAny<Group>()), Times.Never);
+        _uow.Verify(u => u.SaveAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddGroupAsync_TrimsNameBeforeCheckAndSave()
+    {
+        _groups.Setup(r => r.NameExistsAsync("Group A", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        var dto = new GroupCreateDto("  Group A  ", Guid.NewGuid(), null);
+
+        await _sut.AddGroupAsync(dto);
+
+        _groups.Verify(r => r.NameExistsAsync("Group A", null, It.IsAny<CancellationToken>()), Times.Once);
+        _groups.Verify(r => r.Add(It.Is<Group>(g => g.Name == "Group A")), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateGroupAsync_ThrowsDuplicateNameException_WhenNameExists()
+    {
+        var id = Guid.NewGuid();
+        _groups.Setup(r => r.NameExistsAsync("Duplicate", id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var dto = new GroupEditDto(id, "Duplicate", null);
+
+        await Assert.ThrowsAsync<DuplicateNameException>(() => _sut.UpdateGroupAsync(dto));
+        _groups.Verify(r => r.Update(It.IsAny<Group>()), Times.Never);
+        _uow.Verify(u => u.SaveAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateGroupAsync_PassesExcludeId_WhenCheckingDuplicate()
+    {
+        var group = new Group { Id = Guid.NewGuid(), Name = "Old", CourseId = Guid.NewGuid() };
+        _groups.Setup(r => r.NameExistsAsync("New", group.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _groups.Setup(r => r.GetByIdAsync(group.Id)).ReturnsAsync(group);
+        var dto = new GroupEditDto(group.Id, "  New  ", null);
+
+        await _sut.UpdateGroupAsync(dto);
+
+        _groups.Verify(r => r.NameExistsAsync("New", group.Id, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Equal("New", group.Name);
     }
 }

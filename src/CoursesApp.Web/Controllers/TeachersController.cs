@@ -15,15 +15,21 @@ public class TeachersController(
     {
         logger.LogInformation("Loading teachers page");
         
-        var model = await BuildViewModelAsync(null, 1, ct);
+        var model = await BuildViewModelAsync(null, TeacherSortKey.LastName, false, 1, ct);
         return View(model);
     }
 
     [HttpGet]
-    public async Task<IActionResult> Search(string? search, int page = 1, CancellationToken ct = default)
+    public async Task<IActionResult> Search(
+        string? search,
+        TeacherSortKey sortKey = TeacherSortKey.LastName,
+        bool sortDesc = false,
+        int page = 1,
+        CancellationToken ct = default)
     {
-        logger.LogInformation("Searching teachers: search={Search}, page={Page}", search, page);
-        var model = await BuildViewModelAsync(search, page, ct);
+        logger.LogInformation("Searching teachers: search={Search}, sort={Sort} desc={Desc}, page={Page}",
+            search, sortKey, sortDesc, page); 
+        var model = await BuildViewModelAsync(search, sortKey, sortDesc, page, ct);
         return PartialView("_TeachersTableBody", model);
     }
 
@@ -63,26 +69,32 @@ public class TeachersController(
         () => hubContext.Clients.All.SendAsync("TeacherDeleted", id, cancellationToken: ct));
     }
 
-    private async Task<TeachersIndexViewModel> BuildViewModelAsync(string? search, int page, CancellationToken ct = default)
+    private async Task<TeachersIndexViewModel> BuildViewModelAsync(
+        string? search, TeacherSortKey sortKey, bool sortDesc, 
+        int page, CancellationToken ct = default)
     {
-        var (teachers, total, effectivePage) = await GetPageAsync(search, page, ct);
+        var (teachers, total, effectivePage) = await GetPageAsync(search, sortKey, sortDesc, page, ct);
         return new TeachersIndexViewModel
         {
             Teachers = teachers,
             Page = effectivePage,
             TotalCount = total,
-            PageSize = PageSize
+            PageSize = PageSize,
+            SortKey = sortKey,
+            SortDesc = sortDesc
         };
     }
     
-    private async Task<(List<TeacherDto> teachers, int total, int page)> GetPageAsync(string? search, int page, CancellationToken ct = default)
+    private async Task<(List<TeacherDto> teachers, int total, int page)> GetPageAsync(
+        string? search, TeacherSortKey sortKey, bool sortDesc, 
+        int page, CancellationToken ct = default)
     {
-        var (teachers, total) = await teacherService.GetPageAsync(search, page, PageSize, ct);
+        var (teachers, total) = await teacherService.GetPageAsync(search, sortKey, sortDesc, page, PageSize, ct);
         var totalPages = total > 0 ? (int)Math.Ceiling((double)total / PageSize) : 1;
         if (page > totalPages)
         {
             page = totalPages;
-            (teachers, total) = await teacherService.GetPageAsync(search, page, PageSize, ct);
+            (teachers, total) = await teacherService.GetPageAsync(search, sortKey, sortDesc, page, PageSize, ct);
         }
 
         return (teachers, total, page);

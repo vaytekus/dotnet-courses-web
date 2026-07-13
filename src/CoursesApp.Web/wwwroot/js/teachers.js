@@ -31,6 +31,16 @@ connection.on("TeacherUpdated", (teacherId, firstName, lastName) => {
 
 let currentPage = 1;
 let debounceTimer;
+let currentSort = window.initialSort ?? { key: 'lastName', desc: false };
+
+function updateSortArrows() {
+    document.querySelectorAll('#teachers-table thead th[data-sort-key]').forEach(th => {
+        const arrow = th.querySelector('.sort-arrow');
+        if (!arrow) return;
+        arrow.textContent = (th.dataset.sortKey === currentSort.key)
+            ? (currentSort.desc ? ' ▼' : ' ▲') : '';
+    });
+}
 
 function searchTeachers(page = 1) {
     currentPage = page;
@@ -38,7 +48,12 @@ function searchTeachers(page = 1) {
     debounceTimer = setTimeout(() => {
         const searchInput = document.getElementById('search-input');
         const search = searchInput ? searchInput.value.trim() : '';
-        const params = new URLSearchParams({ search, page: currentPage });
+        const params = new URLSearchParams({
+            search,
+            sortKey: currentSort.key,
+            sortDesc: currentSort.desc,
+            page: currentPage
+        });
         fetch(`/teachers/search?${params}`)
             .then(r => r.text())
             .then(html => {
@@ -132,6 +147,22 @@ if (document.getElementById('teachers-table')) {
             modal.show();
         }
     });
+
+    document.querySelectorAll('#teachers-table thead th[data-sort-key]').forEach(th => {
+        th.addEventListener('click', () => {
+            const key = th.dataset.sortKey;
+            if (currentSort.key === key) {
+                currentSort.desc = !currentSort.desc;
+            } else {
+                currentSort.key = key;
+                currentSort.desc = false;
+            }
+            updateSortArrows();
+            searchTeachers(currentPage);
+        });
+    });
+
+    updateSortArrows();
 }
 
 // Create teacher

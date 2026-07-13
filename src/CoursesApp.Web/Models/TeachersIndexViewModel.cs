@@ -7,4 +7,6 @@ public class TeachersIndexViewModel
     public int PageSize { get; set; } = 10;
     public int TotalCount { get; set; }
     public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+    public TeacherSortKey SortKey { get; set; } = TeacherSortKey.LastName;
+    public bool SortDesc { get; set; } = false;
 }

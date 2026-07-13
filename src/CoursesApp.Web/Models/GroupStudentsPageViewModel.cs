@@ -8,4 +8,6 @@ public class GroupStudentsPageViewModel
     public required int PageSize { get; init; }
     public required int TotalCount { get; init; }
     public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+    public StudentSortKey SortKey { get; set; } = StudentSortKey.LastName;
+    public bool SortDesc { get; set; } = false;
 }
