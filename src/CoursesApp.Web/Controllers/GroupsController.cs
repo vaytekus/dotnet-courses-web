@@ -1,8 +1,12 @@
+using CoursesApp.Web.Hubs;
+using Microsoft.AspNetCore.SignalR;
+
 namespace CoursesApp.Web.Controllers;
 
 public class GroupsController(
     IGroupService groupService,
     IConfiguration configuration,
+    IHubContext<AppHub> hubContext,
     ILogger<GroupsController> logger)
     : BaseController(logger, configuration)
 {
@@ -51,6 +55,19 @@ public class GroupsController(
     [HttpDelete]
     public async Task<IActionResult> Delete(Guid id, bool deleteStudents = false, CancellationToken ct = default)
     {
-        return await ExecuteAsync(() => groupService.DeleteGroupAsync(id, deleteStudents, ct), "Error deleting group");
+        try
+        {
+            var result = await groupService.DeleteGroupAsync(id, deleteStudents, ct);
+            if (result.Success)
+            {
+                await hubContext.Clients.All.SendAsync("GroupDeleted", id, result.DeletedStudentsIds, cancellationToken: ct);
+            }
+            return Json(new { success = result.Success });
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error deleting group");
+            return Json(new { success = false, message = "Error deleting group" }); 
+        }
     }
 }

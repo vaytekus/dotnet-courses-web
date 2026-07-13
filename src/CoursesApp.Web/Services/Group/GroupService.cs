@@ -113,20 +113,22 @@ public class GroupService(
         await _uow.Groups.UnassignTeacherAsync(teacherId, ct);
     }
 
-    public async Task<bool> DeleteGroupAsync(Guid id, bool deleteStudents = false, CancellationToken ct = default)
+    public async Task<GroupDeletionResult> DeleteGroupAsync(Guid id, bool deleteStudents = false, CancellationToken ct = default)
     {
         _logger.LogInformation("Deleting group {Id}", id);
         var group = await _uow.Groups.GetByIdAsync(id, ct)
                     ?? throw new KeyNotFoundException($"Group with id {id} not found");
+
+        List<Guid> deletedIds = [];
         if (group.Students.Any())
         {
             if (!deleteStudents)
             {
                 _logger.LogWarning("Cannot delete group {Id} — it has {Count} students", id, group.Students.Count);
-                return false;
+                return new GroupDeletionResult(false, deletedIds);
             }
 
-            await _uow.Students.DeleteAllByGroupAsync(id, ct);
+            deletedIds = await _uow.Students.DeleteAllByGroupAsync(id, ct);
         }
         
         _uow.Groups.Delete(group);
@@ -134,7 +136,7 @@ public class GroupService(
         _logger.LogInformation("Group {Id} deleted successfully", id);
         InvalidateCache();
         
-        return true;
+        return new GroupDeletionResult(true, deletedIds);
     }
 
     private void InvalidateCache()

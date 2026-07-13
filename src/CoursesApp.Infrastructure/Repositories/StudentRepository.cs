@@ -67,12 +67,14 @@ public class StudentRepository(AppDbContext context) : RepositoryBase(context), 
         Context.Students.Remove(student);
     }
 
-    public async Task DeleteAllByGroupAsync(Guid groupId, CancellationToken ct = default)
+    public async Task<List<Guid>> DeleteAllByGroupAsync(Guid groupId, CancellationToken ct = default)
     {
         var students = await Context.Students
             .Where(s => s.GroupId == groupId)
             .ToListAsync(ct);
         
+        var ids = students.Select(s => s.Id).ToList();
         Context.Students.RemoveRange(students);
+        return ids;
     }
 }

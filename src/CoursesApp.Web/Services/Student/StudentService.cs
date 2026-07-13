@@ -39,18 +39,22 @@ public class StudentService(
         _logger.LogInformation("Student {Id} added successfully", student.Id);
     }
 
-    public async Task UpdateStudentAsync(StudentEditDto studentDto, CancellationToken ct = default)
+    public async Task<Guid> UpdateStudentAsync(StudentEditDto studentDto, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(studentDto);
         _logger.LogInformation("Updating student {Id}", studentDto.Id);
         var student = await _uow.Students.GetByIdAsync(studentDto.Id, ct)
             ?? throw new KeyNotFoundException($"Student {studentDto.Id} not found");
+
+        var oldGroupId = student.GroupId;
         student.FirstName = studentDto.FirstName;
         student.LastName = studentDto.LastName;
         student.GroupId = studentDto.GroupId;
         _uow.Students.Update(student);
         await _uow.SaveAsync(ct);
         _logger.LogInformation("Student {Id} updated successfully", studentDto.Id);
+
+        return oldGroupId;
     }
 
     public async Task DeleteStudentAsync(Guid id, CancellationToken ct = default)
@@ -63,13 +67,12 @@ public class StudentService(
         _logger.LogInformation("Student {Id} deleted successfully", id);
     }
 
-    public async Task ClearAllStudentsAsync(Guid id, CancellationToken ct = default)
+    public async Task<List<Guid>> ClearAllStudentsAsync(Guid id, CancellationToken ct = default)
     {
         _logger.LogInformation("Clearing all students from group {GroupId}", id);
-        await _uow.Students.DeleteAllByGroupAsync(id, ct);
+        var ids = await _uow.Students.DeleteAllByGroupAsync(id, ct);
         await _uow.SaveAsync(ct);
         _logger.LogInformation("All students cleared from group {GroupId}", id);
+        return ids;
     }
-
-    
 }

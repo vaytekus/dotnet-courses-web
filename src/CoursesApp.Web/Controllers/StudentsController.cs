@@ -53,7 +53,18 @@ public class StudentsController(
         return await ExecuteAsync(
             () => studentService.UpdateStudentAsync(dto, ct), 
             "Error updating student",
-            () => hubContext.Clients.All.SendAsync("StudentUpdated", dto.Id, dto.FirstName, dto.LastName, dto.GroupId, cancellationToken: ct)); 
+            async oldGroupId =>
+            {
+                if(oldGroupId != dto.GroupId)
+                {
+                    await hubContext.Clients.All.SendAsync("StudentDeleted", dto.Id, oldGroupId, cancellationToken: ct);
+                    await hubContext.Clients.All.SendAsync("StudentAdded", dto.GroupId, cancellationToken: ct);
+                }
+                else
+                {
+                    await hubContext.Clients.All.SendAsync("StudentUpdated", dto.Id, dto.FirstName, dto.LastName, dto.GroupId, cancellationToken: ct);
+                }
+            }); 
     }
 
     [HttpDelete]
@@ -68,7 +79,16 @@ public class StudentsController(
     [HttpPost]
     public async Task<IActionResult> ClearStudents(Guid groupId, CancellationToken ct)
     {
-        return await ExecuteAsync(() => studentService.ClearAllStudentsAsync(groupId, ct), "Error clearing students");
+        return await ExecuteAsync(
+            () => studentService.ClearAllStudentsAsync(groupId, ct), 
+            "Error clearing students",
+            async ids =>
+            {
+                if (ids.Count > 0)
+                {
+                    await hubContext.Clients.All.SendAsync("StudentsCleared", groupId, ids, cancellationToken: ct);
+                }
+            });
     }
 
     [HttpGet]
@@ -118,6 +138,10 @@ public class StudentsController(
         {
             await using var stream = file.OpenReadStream();
             var result = await csvService.ImportGroupCsvAsync(stream, groupId, ct);
+            if (result.ImportedCount > 0)
+            {
+                await hubContext.Clients.All.SendAsync("StudentAdded", groupId, cancellationToken: ct);
+            }
             return Json(new { success = true, imported = result.ImportedCount, errors = result.Errors });
         }
         catch (Exception e)

@@ -59,9 +59,11 @@ public class StudentsControllerTests
     }
 
     [Fact]
-    public async Task Edit_BroadcastsStudentUpdated_WhenStudentExists()
+    public async Task Edit_BroadcastsStudentUpdated_WhenGroupNotChanged()
     {
         var dto = new StudentEditDto(Guid.NewGuid(), "Jane", "Smith", Guid.NewGuid());
+        _students.Setup(s => s.UpdateStudentAsync(dto, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(dto.GroupId);
 
         await _sut.Edit(dto, CancellationToken.None);
 
@@ -73,6 +75,61 @@ public class StudentsControllerTests
                 args[2].Equals(dto.LastName) &&
                 args[3].Equals(dto.GroupId)),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Edit_BroadcastsStudentDeletedAndAdded_WhenGroupChanged()
+    {
+        var oldGroupId = Guid.NewGuid();
+        var dto = new StudentEditDto(Guid.NewGuid(), "Jane", "Smith", Guid.NewGuid());
+        _students.Setup(s => s.UpdateStudentAsync(dto, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(oldGroupId);
+
+        await _sut.Edit(dto, CancellationToken.None);
+
+        _clientProxy.Verify(c => c.SendCoreAsync(
+            "StudentDeleted",
+            It.Is<object[]>(args => args[0].Equals(dto.Id) && args[1].Equals(oldGroupId)),
+            It.IsAny<CancellationToken>()), Times.Once);
+        _clientProxy.Verify(c => c.SendCoreAsync(
+            "StudentAdded",
+            It.Is<object[]>(args => args[0].Equals(dto.GroupId)),
+            It.IsAny<CancellationToken>()), Times.Once);
+        _clientProxy.Verify(c => c.SendCoreAsync(
+            "StudentUpdated",
+            It.IsAny<object[]>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ClearStudents_BroadcastsStudentsCleared_WhenAnyDeleted()
+    {
+        var groupId = Guid.NewGuid();
+        var ids = new List<Guid> { Guid.NewGuid(), Guid.NewGuid() };
+        _students.Setup(s => s.ClearAllStudentsAsync(groupId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ids);
+
+        await _sut.ClearStudents(groupId, CancellationToken.None);
+
+        _clientProxy.Verify(c => c.SendCoreAsync(
+            "StudentsCleared",
+            It.Is<object[]>(args => args[0].Equals(groupId) && ReferenceEquals(args[1], ids)),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ClearStudents_DoesNotBroadcast_WhenNothingDeleted()
+    {
+        var groupId = Guid.NewGuid();
+        _students.Setup(s => s.ClearAllStudentsAsync(groupId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Guid>());
+
+        await _sut.ClearStudents(groupId, CancellationToken.None);
+
+        _clientProxy.Verify(c => c.SendCoreAsync(
+            "StudentsCleared",
+            It.IsAny<object[]>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

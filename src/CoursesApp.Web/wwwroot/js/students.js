@@ -17,6 +17,18 @@ connection.on("StudentDeleted", (studentId) => {
     searchStudents(currentPage);
 });
 
+connection.on("GroupDeleted", (groupId, studentIds) => {
+    if (!studentIds?.length) return;
+    const hasVisible = studentIds.some(id => document.querySelector(`#students-table tr[data-id="${id}"]`));
+    if (hasVisible) searchStudents(currentPage);
+});
+
+connection.on("StudentsCleared", (groupId, studentIds) => {
+    if (!studentIds?.length) return;
+    const hasVisible = studentIds.some(id => document.querySelector(`#students-table tr[data-id="${id}"]`));
+    if (hasVisible) searchStudents(currentPage);
+});
+
 connection.on("StudentUpdated", (studentId, firstName, lastName, groupId) => {
     if (_pendingSaveStudentId === studentId) return;
     const row = document.querySelector(`tr[data-id="${studentId}"]`);

@@ -72,6 +72,27 @@ connection.on("StudentDeleted", (studentId, groupId) => {
     }
 });
 
+connection.on("GroupDeleted", (groupId) => {
+    if (document.querySelector(`li[data-id="${groupId}"]`)) searchGroups(currentPage);
+});
+
+connection.on("StudentsCleared", (groupId) => {
+    const groupItem = document.querySelector(`li[data-id="${groupId}"]`);
+    if (groupItem) {
+        groupItem.dataset.studentCount = 0;
+        const badge = groupItem.querySelector('.badge');
+        if (badge) badge.textContent = '0 stu';
+    }
+    const collapse = document.getElementById(`collapse-${groupId}`);
+    if (collapse?.classList.contains('show')) {
+        const container = collapse.querySelector('.students-container');
+        const s = getStudentsSort(collapse);
+        fetch(buildStudentsUrl(groupId, 1, s.key, s.desc))
+            .then(r => r.text())
+            .then(html => { container.innerHTML = html; });
+    }
+});
+
 connection.on("StudentAdded", (groupId) => {
     const collapse = document.getElementById(`collapse-${groupId}`);
     if (!collapse) return;

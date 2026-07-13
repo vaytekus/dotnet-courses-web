@@ -78,14 +78,17 @@ public class StudentServiceTests
     }
 
     [Fact]
-    public async Task ClearAllStudentsAsync_CallsDeleteAllAndSave()
+    public async Task ClearAllStudentsAsync_CallsDeleteAllAndSave_ReturnsDeletedIds()
     {
         var groupId = Guid.NewGuid();
-        _students.Setup(r => r.DeleteAllByGroupAsync(groupId)).Returns(Task.CompletedTask);
+        var expectedIds = new List<Guid> { Guid.NewGuid(), Guid.NewGuid() };
+        _students.Setup(r => r.DeleteAllByGroupAsync(groupId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedIds);
 
-        await _sut.ClearAllStudentsAsync(groupId);
+        var result = await _sut.ClearAllStudentsAsync(groupId);
 
-        _students.Verify(r => r.DeleteAllByGroupAsync(groupId), Times.Once);
+        Assert.Equal(expectedIds, result);
+        _students.Verify(r => r.DeleteAllByGroupAsync(groupId, It.IsAny<CancellationToken>()), Times.Once);
         _uow.Verify(u => u.SaveAsync(), Times.Once);
     }
 

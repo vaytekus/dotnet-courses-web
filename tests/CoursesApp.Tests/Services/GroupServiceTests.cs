@@ -87,7 +87,7 @@ public class GroupServiceTests
     }
 
     [Fact]
-    public async Task DeleteGroupAsync_ReturnsFalse_WhenGroupHasStudents()
+    public async Task DeleteGroupAsync_ReturnsFailure_WhenGroupHasStudentsAndDeleteStudentsIsFalse()
     {
         var group = new Group { Id = Guid.NewGuid(), Name = "G", CourseId = Guid.NewGuid() };
         group.Students.Add(new Student { Id = Guid.NewGuid(), FirstName = "A", LastName = "B", GroupId = group.Id });
@@ -95,21 +95,42 @@ public class GroupServiceTests
 
         var result = await _sut.DeleteGroupAsync(group.Id);
 
-        Assert.False(result);
+        Assert.False(result.Success);
+        Assert.Empty(result.DeletedStudentsIds);
         _groups.Verify(r => r.Delete(It.IsAny<Group>()), Times.Never);
     }
 
     [Fact]
-    public async Task DeleteGroupAsync_DeletesAndReturnsTrue_WhenGroupIsEmpty()
+    public async Task DeleteGroupAsync_DeletesAndReturnsSuccess_WhenGroupIsEmpty()
     {
         var group = new Group { Id = Guid.NewGuid(), Name = "G", CourseId = Guid.NewGuid() };
         _groups.Setup(r => r.GetByIdAsync(group.Id)).ReturnsAsync(group);
 
         var result = await _sut.DeleteGroupAsync(group.Id);
 
-        Assert.True(result);
+        Assert.True(result.Success);
+        Assert.Empty(result.DeletedStudentsIds);
         _groups.Verify(r => r.Delete(group), Times.Once);
         _uow.Verify(u => u.SaveAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteGroupAsync_ReturnsDeletedStudentIds_WhenCascadeDelete()
+    {
+        var group = new Group { Id = Guid.NewGuid(), Name = "G", CourseId = Guid.NewGuid() };
+        group.Students.Add(new Student { Id = Guid.NewGuid(), FirstName = "A", LastName = "B", GroupId = group.Id });
+        _groups.Setup(r => r.GetByIdAsync(group.Id)).ReturnsAsync(group);
+        var expectedIds = new List<Guid> { Guid.NewGuid(), Guid.NewGuid() };
+        var students = new Mock<IStudentRepository>();
+        students.Setup(r => r.DeleteAllByGroupAsync(group.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedIds);
+        _uow.Setup(u => u.Students).Returns(students.Object);
+
+        var result = await _sut.DeleteGroupAsync(group.Id, deleteStudents: true);
+
+        Assert.True(result.Success);
+        Assert.Equal(expectedIds, result.DeletedStudentsIds);
+        _groups.Verify(r => r.Delete(group), Times.Once);
     }
 
     [Fact]
