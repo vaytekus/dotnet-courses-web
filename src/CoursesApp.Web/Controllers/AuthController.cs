@@ -1,6 +1,7 @@
 using CoursesApp.Web.DTOs.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace CoursesApp.Web.Controllers;
 
@@ -47,13 +48,18 @@ public class AuthController(
 
     [HttpGet]
     [AllowAnonymous]
-    public IActionResult Register()
+    public IActionResult Register(bool rateLimited = false)
     {
+        if (rateLimited)
+        {
+            ModelState.AddModelError(string.Empty, "Too many registration attempts. Please try again in a few minutes.");
+        }
         return View();
     }
 
     [HttpPost]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimiterPolicyNames.Register)]
     public async Task<IActionResult> Register(RegisterDto dto, CancellationToken ct)
     {
         if (!ModelState.IsValid)
@@ -64,6 +70,13 @@ public class AuthController(
         if (dto.Password != dto.ConfirmPassword)
         {
             ModelState.AddModelError(string.Empty, "Passwords do not match");
+            return View(dto);
+        }
+        
+        var existingUser = await userManager.FindByEmailAsync(dto.Email);
+        if (existingUser is not null)
+        {
+            ModelState.AddModelError(nameof(dto.Email), "This email is already registered");
             return View(dto);
         }
 

@@ -5,13 +5,14 @@ using CoursesApp.Web.Extensions;
 using CoursesApp.Web.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
-using Microsoft.AspNetCore.RateLimiting;
 using Serilog;
 
 const int RateLimitWindowMinutes = 1;
 const int RateLimitPermitLimit = 100;
 const int RateLimitQueueLimit = 10;
 const int CookieExpireDays = 14;
+const int RegisterRateLimitWindowMinutes = 10;
+const int RegisterRateLimitPermitLimit = 5;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,15 +37,51 @@ try
     builder.Services.AddSignalR();
     builder.Services.AddRateLimiter(options =>
     {
-        options.AddFixedWindowLimiter(RateLimiterPolicyNames.Fixed, limiter =>
-        {
-            limiter.Window = TimeSpan.FromMinutes(RateLimitWindowMinutes);
-            limiter.PermitLimit = RateLimitPermitLimit;
-            limiter.QueueLimit = RateLimitQueueLimit;
-            limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        });
+        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    Window = TimeSpan.FromMinutes(RateLimitWindowMinutes),
+                    PermitLimit = RateLimitPermitLimit,
+                    QueueLimit = RateLimitQueueLimit,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    AutoReplenishment = true
+                }
+            )
+        );
 
-        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        options.AddPolicy(RateLimiterPolicyNames.Register, context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    Window = TimeSpan.FromMinutes(RegisterRateLimitWindowMinutes),
+                    PermitLimit = RegisterRateLimitPermitLimit,
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }
+            )
+        );
+
+        options.OnRejected = async (context, ct) =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>(); 
+            logger.LogWarning("Rate limit exceeded for {IP} on {Method} {Path}",
+                context.HttpContext.Connection.RemoteIpAddress,
+                context.HttpContext.Request.Method,
+                context.HttpContext.Request.Path);
+
+            if (context.HttpContext.Request.Path.StartsWithSegments("/auth/register"))
+            {
+                context.HttpContext.Response.Redirect("/auth/register?rateLimited=true");
+                return;
+            }
+
+            context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            context.HttpContext.Response.ContentType = "text/plain; charset=utf-8";
+            await context.HttpContext.Response.WriteAsync("Too many requests. Please try again in a few minutes.", ct);
+        };
     });
     builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
 
@@ -83,8 +120,7 @@ try
     app.MapControllerRoute(
             name: "default",
             pattern: "{controller=Courses}/{action=Index}/{id?}")
-        .WithStaticAssets()
-        .RequireRateLimiting(RateLimiterPolicyNames.Fixed);
+        .WithStaticAssets();
 
     app.MapHub<AppHub>("/hubs/app");
     app.Run();
