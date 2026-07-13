@@ -126,12 +126,17 @@ public class AuthController(
     [AllowAnonymous]
     public async Task<IActionResult> ConfirmEmail(string userId, string token)
     {
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(token))
+        {
+            return NotFound();
+        }
+
         var user = await userManager.FindByIdAsync(userId);
         if (user is null)
         {
             return NotFound();
         }
-        
+
         var result = await userManager.ConfirmEmailAsync(user, token);
         return View(result.Succeeded ? "EmailConfirmed" : "EmailConfirmationError");
     }

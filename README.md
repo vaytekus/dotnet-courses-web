@@ -4,34 +4,29 @@ ASP.NET Core MVC web application for managing courses, groups, students and teac
 
 ## Features
 
-- Browse courses with expandable groups via accordion
-- View, add, edit, delete students and teachers (inline, without page reload)
-- Filter and search groups, students, teachers with server-side pagination
+- Browse courses with expandable groups
+- Add, edit, delete students, teachers and groups (inline, without page reload)
+- Filter and search with server-side pagination
 - Import / export students per group as CSV
-- ASP.NET Core Identity authentication (register, login, logout)
-- Email confirmation on registration via SMTP (Gmail)
-- Rate limiting (100 req/min per route)
-- Server-side caching with IMemoryCache
-- CancellationToken propagation through all layers
+- ASP.NET Core Identity: register, login, logout with email confirmation (SMTP)
+- Rate limiting, server-side caching, CancellationToken through all layers
+- Unit tests (xUnit + Moq)
 
 ## Stack
 
-- .NET 10 / C#
-- ASP.NET Core MVC
+- .NET 10 / ASP.NET Core MVC
 - Entity Framework Core + SQL Server
 - ASP.NET Core Identity
-- MailKit (SMTP)
-- Serilog
-- Bootstrap 5
-- xUnit + Moq (unit tests)
+- MailKit (SMTP / Gmail)
+- Serilog / Bootstrap 5
 
 ## Project Structure
 
 ```
 src/
-├── CoursesApp.Domain/         # Entities, repository interfaces
-├── CoursesApp.Infrastructure/ # EF Core, repositories, migrations, seeder
-└── CoursesApp.Web/            # Controllers, views, services, DTOs, mappers
+├── CoursesApp.Domain/         # Entities, interfaces
+├── CoursesApp.Infrastructure/ # EF Core, repositories, migrations
+└── CoursesApp.Web/            # Controllers, views, services
 tests/
 └── CoursesApp.Tests/          # Unit tests for services
 ```
@@ -46,7 +41,7 @@ docker-compose up -d
 
 ## Configuration
 
-Create `src/CoursesApp.Web/appsettings.Development.json` and fill in your values:
+Copy and fill in `appsettings.Development.example.json` → `appsettings.Development.json`:
 
 ```json
 {
@@ -57,30 +52,15 @@ Create `src/CoursesApp.Web/appsettings.Development.json` and fill in your values
     "Host": "smtp.gmail.com",
     "Port": 587,
     "FromEmail": "your@gmail.com",
-    "FromName": "CoursesApp",
     "UserName": "your@gmail.com",
     "Password": "YOUR_GMAIL_APP_PASSWORD"
   }
 }
 ```
 
-> For Gmail, generate an **App Password** at Google Account → Security → 2-Step Verification → App passwords.
-
-## Apply migrations
-
-```bash
-cd src
-dotnet ef database update --project CoursesApp.Infrastructure --startup-project CoursesApp.Web
-```
-
 ## Run
 
 ```bash
 dotnet run --project src/CoursesApp.Web
-```
-
-## Tests
-
-```bash
 dotnet test tests/CoursesApp.Tests
 ```

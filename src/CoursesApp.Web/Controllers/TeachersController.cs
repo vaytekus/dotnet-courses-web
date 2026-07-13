@@ -1,3 +1,4 @@
+using CoursesApp.Web.Extensions;
 using CoursesApp.Web.Hubs;
 using Microsoft.AspNetCore.SignalR;
 
@@ -85,18 +86,9 @@ public class TeachersController(
         };
     }
     
-    private async Task<(List<TeacherDto> teachers, int total, int page)> GetPageAsync(
-        string? search, TeacherSortKey sortKey, bool sortDesc, 
+    private Task<(List<TeacherDto> Data, int Total, int Page)> GetPageAsync(
+        string? search, TeacherSortKey sortKey, bool sortDesc,
         int page, CancellationToken ct = default)
-    {
-        var (teachers, total) = await teacherService.GetPageAsync(search, sortKey, sortDesc, page, PageSize, ct);
-        var totalPages = total > 0 ? (int)Math.Ceiling((double)total / PageSize) : 1;
-        if (page > totalPages)
-        {
-            page = totalPages;
-            (teachers, total) = await teacherService.GetPageAsync(search, sortKey, sortDesc, page, PageSize, ct);
-        }
-
-        return (teachers, total, page);
-    }
+        => PaginationHelper.ClampPageAsync(page, PageSize,
+            p => teacherService.GetPageAsync(search, sortKey, sortDesc, p, PageSize, ct));
 }

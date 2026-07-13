@@ -135,6 +135,8 @@ if (document.getElementById('teachers-table')) {
         // Delete
         if (e.target.classList.contains('btn-delete')) {
             const row = e.target.closest('tr');
+            document.getElementById('delete-target-name').textContent =
+                `${row.dataset.firstName} ${row.dataset.lastName}`;
             const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
             document.getElementById('btn-confirm-delete').onclick = () => {
                 fetch(`/teachers/delete/${row.dataset.id}`, {

@@ -4,8 +4,8 @@ public class TeacherService(
     IUnitOfWork uow,
     ILogger<TeacherService> logger) : ITeacherService
 {
-    private readonly IUnitOfWork _uow = uow ?? throw new ArgumentNullException(nameof(uow));
-    private readonly ILogger<TeacherService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly IUnitOfWork _uow = uow;
+    private readonly ILogger<TeacherService> _logger = logger;
 
     public async Task<(List<TeacherDto> Teachers, int TotalCount)> GetPageAsync(
         string? search, TeacherSortKey sortKey, bool sortDesc, 

@@ -1,4 +1,5 @@
 using CoursesApp.Domain.Exceptions;
+using CoursesApp.Web.Extensions;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace CoursesApp.Web.Services;
@@ -8,13 +9,14 @@ public class GroupService(
     IMemoryCache cache,
     ILogger<GroupService> logger) : IGroupService
 {
-    private static readonly TimeSpan _cacheTtl = TimeSpan.FromMinutes(5);
+    private const int _cacheTtlMinutes = 5;
+    private static readonly TimeSpan _cacheTtl = TimeSpan.FromMinutes(_cacheTtlMinutes);
     private const string _coursesCacheKey = "courses_all";
     private const string _teachersCacheKey = "teachers_all";
 
-    private readonly IUnitOfWork _uow = uow ?? throw new ArgumentNullException(nameof(uow));
-    private readonly ILogger<GroupService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    private readonly IMemoryCache _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+    private readonly IUnitOfWork _uow = uow;
+    private readonly ILogger<GroupService> _logger = logger;
+    private readonly IMemoryCache _cache = cache;
     
     public async Task<GroupsIndexViewModel> GetPageAsync(
         string? search, 
@@ -25,14 +27,9 @@ public class GroupService(
         CancellationToken ct = default)
     {
         _logger.LogInformation("Loading groups page: search={Search}, courseId={CourseId}, filter={Filter}, page={Page}", search, courseId, filter, page);
-        var (groups, total) = await _uow.Groups.GetFilteredGroupAsync(search, courseId, filter, page, pageSize, ct);
-
-        var totalPages = total > 0 ? (int)Math.Ceiling((double)total / pageSize) : 1;
-        if (page > totalPages)
-        {
-            page = totalPages;
-            (groups, total) = await _uow.Groups.GetFilteredGroupAsync(search, courseId, filter, page, pageSize, ct);
-        }
+        var (groups, total, effectivePage) = await PaginationHelper.ClampPageAsync(page, pageSize,
+            p => _uow.Groups.GetFilteredGroupAsync(search, courseId, filter, p, pageSize, ct));
+        page = effectivePage;
 
         if (!_cache.TryGetValue(_coursesCacheKey, out List<Course>? courses))
         {

@@ -7,8 +7,8 @@ public class CsvService(
     IEnumerable<ICsvLineParser> parsers) : ICsvService
 {
     private const string _csvHeader = "#,First Name,Last Name";
-    private readonly IUnitOfWork _uow = uow ?? throw new ArgumentNullException(nameof(uow));
-    private readonly IEnumerable<ICsvLineParser> _parsers = parsers ?? throw new ArgumentNullException(nameof(parsers));
+    private readonly IUnitOfWork _uow = uow;
+    private readonly IEnumerable<ICsvLineParser> _parsers = parsers;
 
     public async Task<byte[]> ExportGroupCsvAsync(Guid groupId, CancellationToken ct = default)
     {

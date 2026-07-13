@@ -12,7 +12,10 @@ else
 {
     @for (int i = 0; i < Model.Students.Count; i++)
         {
-            <tr data-id="@Model.Students[i].Id" data-group-id="@Model.Students[i].GroupId">
+            <tr data-id="@Model.Students[i].Id"
+                data-group-id="@Model.Students[i].GroupId"
+                data-first-name="@Model.Students[i].FirstName"
+                data-last-name="@Model.Students[i].LastName">
                 <td>@((Model.Page - 1) * Model.PageSize + i + 1)</td>
                 <td>
                     <span class="view-mode">

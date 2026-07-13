@@ -7,12 +7,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Serilog;
 
-const int RateLimitWindowMinutes = 1;
-const int RateLimitPermitLimit = 100;
-const int RateLimitQueueLimit = 10;
-const int CookieExpireDays = 14;
-const int RegisterRateLimitWindowMinutes = 10;
-const int RegisterRateLimitPermitLimit = 5;
+const int _rateLimitWindowMinutes = 1;
+const int _rateLimitPermitLimit = 100;
+const int _rateLimitQueueLimit = 10;
+const int _cookieExpireDays = 14;
+const int _registerRateLimitWindowMinutes = 10;
+const int _registerRateLimitPermitLimit = 5;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,9 +42,9 @@ try
                 partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                 factory: _ => new FixedWindowRateLimiterOptions
                 {
-                    Window = TimeSpan.FromMinutes(RateLimitWindowMinutes),
-                    PermitLimit = RateLimitPermitLimit,
-                    QueueLimit = RateLimitQueueLimit,
+                    Window = TimeSpan.FromMinutes(_rateLimitWindowMinutes),
+                    PermitLimit = _rateLimitPermitLimit,
+                    QueueLimit = _rateLimitQueueLimit,
                     QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                     AutoReplenishment = true
                 }
@@ -56,8 +56,8 @@ try
                 partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                 factory: _ => new FixedWindowRateLimiterOptions
                 {
-                    Window = TimeSpan.FromMinutes(RegisterRateLimitWindowMinutes),
-                    PermitLimit = RegisterRateLimitPermitLimit,
+                    Window = TimeSpan.FromMinutes(_registerRateLimitWindowMinutes),
+                    PermitLimit = _registerRateLimitPermitLimit,
                     QueueLimit = 0,
                     AutoReplenishment = true
                 }
@@ -90,7 +90,7 @@ try
         options.LoginPath = "/auth/login";
         options.LogoutPath = "/auth/logout";
         options.AccessDeniedPath = "/auth/login";
-        options.ExpireTimeSpan = TimeSpan.FromDays(CookieExpireDays);
+        options.ExpireTimeSpan = TimeSpan.FromDays(_cookieExpireDays);
         options.SlidingExpiration = true;
     });
 

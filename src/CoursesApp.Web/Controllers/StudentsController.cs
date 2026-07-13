@@ -1,4 +1,6 @@
+using CoursesApp.Web.Extensions;
 using CoursesApp.Web.Hubs;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.SignalR;
 
 namespace CoursesApp.Web.Controllers;
@@ -171,20 +173,10 @@ public class StudentsController(
         };
     }
 
-    private async Task<(List<StudentDto> students, int total, int page)> GetPageAsync(
-        string? search, Guid? groupId, 
-        StudentSortKey sortKey, bool sortDesc, int page, 
+    private Task<(List<StudentDto> Data, int Total, int Page)> GetPageAsync(
+        string? search, Guid? groupId,
+        StudentSortKey sortKey, bool sortDesc, int page,
         CancellationToken ct = default)
-    {
-        var (students, total) = await studentService.GetPageAsync(search, groupId, sortKey, sortDesc, page, PageSize, ct);
-        var totalPages = total > 0 ? (int)Math.Ceiling((double)total / PageSize) : 1;
-
-        if (page > totalPages)
-        {
-            page = totalPages;
-            (students, total) = await studentService.GetPageAsync(search, groupId, sortKey, sortDesc, page, PageSize, ct);
-        }
-        
-        return (students, total, page);
-    }
+        => PaginationHelper.ClampPageAsync(page, PageSize,
+            p => studentService.GetPageAsync(search, groupId, sortKey, sortDesc, p, PageSize, ct));
 }

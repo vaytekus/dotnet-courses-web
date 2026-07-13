@@ -4,8 +4,8 @@ public class StudentService(
     IUnitOfWork uow,
     ILogger<StudentService> logger) : IStudentService
 {
-    private readonly IUnitOfWork _uow = uow ?? throw new ArgumentNullException(nameof(uow));
-    private readonly ILogger<StudentService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly IUnitOfWork _uow = uow;
+    private readonly ILogger<StudentService> _logger = logger;
 
     public async Task<(List<StudentDto> Students, int TotalCount)> GetPageAsync(
         string? search, Guid? id, StudentSortKey sortKey, bool sortDesc, int page, int pageSize, CancellationToken ct = default)

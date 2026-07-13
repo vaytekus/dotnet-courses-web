@@ -147,6 +147,8 @@ if (document.getElementById('students-table')) {
 
         if (e.target.classList.contains('btn-delete')) {
             const row = e.target.closest('tr');
+            document.getElementById('delete-target-name').textContent =
+                `${row.dataset.firstName} ${row.dataset.lastName}`;
             const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
             document.getElementById('btn-confirm-delete').onclick = () => {
                 apiCall(`/students/delete/${row.dataset.id}?groupId=${row.dataset.groupId}`, 'DELETE')

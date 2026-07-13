@@ -8,8 +8,7 @@ namespace CoursesApp.Web.Services;
 public class EmailService(IOptions<EmailOptions> options) : IEmailService
 {
     private const string _htmlContentType = "html";
-    private readonly EmailOptions _options =
-        (options ?? throw new ArgumentNullException(nameof(options))).Value;
+    private readonly EmailOptions _options = options.Value;
         
     public async Task SendEmailAsync(string toEmail, string subject, string htmlBody, CancellationToken ct = default)
     {
