@@ -6,7 +6,7 @@ public class CsvService(
     IUnitOfWork uow,
     IEnumerable<ICsvLineParser> parsers) : ICsvService
 {
-    private const string _csvHeader = "#,First Name,Last Name";
+    private const string _csvHeader = "#,First Name,Last Name,DOB,Gender,TaxId,Email,Phone,City,Street,PostalCode";
     private readonly IUnitOfWork _uow = uow;
     private readonly IEnumerable<ICsvLineParser> _parsers = parsers;
 
@@ -17,9 +17,20 @@ public class CsvService(
         sb.AppendLine(_csvHeader);
 
         var i = 1;
-        foreach (var student in students)
+        foreach (var s in students)
         {
-            sb.AppendLine($"{i++},{Escape(student.FirstName)},{Escape(student.LastName)}");
+            sb.AppendLine(string.Join(",",
+                (i++).ToString(),
+                Escape(s.FirstName),
+                Escape(s.LastName),
+                s.DateOfBirth?.ToString("yyyy-MM-dd") ?? "",
+                s.Gender?.ToString() ?? "",
+                Escape(s.TaxId ?? ""),
+                Escape(s.Email ?? ""),
+                Escape(s.Phone ?? ""),
+                Escape(s.City ?? ""),
+                Escape(s.Street ?? ""),
+                Escape(s.PostalCode ?? "")));
         }
 
         return Encoding.UTF8.GetBytes(sb.ToString());
@@ -33,6 +44,8 @@ public class CsvService(
         await reader.ReadLineAsync();
         var lineNumber = 1;
         string? line;
+        var capacity = await _uow.Groups.GetCapacityAsync(groupId, ct);
+        var remaining = capacity.Remaining;
 
         while ((line = await reader.ReadLineAsync()) != null)
         {
@@ -42,7 +55,7 @@ public class CsvService(
                 continue;
             }
 
-            var parts = line.Split(',');
+            var parts = SplitCsvLine(line);
             var parser = _parsers.FirstOrDefault(p => p.CanParse(parts));
 
             if (parser is null)
@@ -51,20 +64,36 @@ public class CsvService(
                 continue;
             }
 
-            var (firstName, lastName) = parser.Parse(parts);
+            var row = parser.Parse(parts);
 
-            if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+            if (string.IsNullOrWhiteSpace(row.FirstName) || string.IsNullOrWhiteSpace(row.LastName))
             {
                 result.Errors.Add($"Line {lineNumber}: first and last name are required!");
                 continue;
             }
 
+            if (remaining <= 0)
+            {
+                result.Errors.Add(
+                    $"Line {lineNumber}: group is full (max {capacity.MaxCapacity}) — skipping");
+                continue;
+            }
+            remaining--;
+
             _uow.Students.Add(new Domain.Entities.Student
             {
                 Id = Guid.NewGuid(),
-                FirstName = firstName,
-                LastName = lastName,
-                GroupId = groupId
+                FirstName = row.FirstName,
+                LastName = row.LastName,
+                GroupId = groupId,
+                DateOfBirth = row.DateOfBirth,
+                Gender = row.Gender,
+                TaxId = row.TaxId,
+                Email = row.Email,
+                Phone = row.Phone,
+                City = row.City,
+                Street = row.Street,
+                PostalCode = row.PostalCode
             });
 
             result.ImportedCount++;
@@ -76,6 +105,40 @@ public class CsvService(
         }
 
         return result;
+    }
+
+    private static string[] SplitCsvLine(string line)
+    {
+        var result = new List<string>();
+        var sb = new StringBuilder();
+        bool inQuotes = false;
+        for (int i = 0; i < line.Length; i++)
+        {
+            var c = line[i];
+            if (c == '"')
+            {
+                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                {
+                    sb.Append('"');
+                    i++;
+                }
+                else
+                {
+                    inQuotes = !inQuotes;
+                }
+            }
+            else if (c == ',' && !inQuotes)
+            {
+                result.Add(sb.ToString());
+                sb.Clear();
+            }
+            else
+            {
+                sb.Append(c);
+            }
+        }
+        result.Add(sb.ToString());
+        return result.ToArray();
     }
 
     private static string Escape(string value)

@@ -29,19 +29,6 @@ connection.on("TeacherDeleted", (teacherId) => {
         });
 });
 
-function getStudentsSort(collapse) {
-    const page = collapse.querySelector('.students-page');
-    return {
-        key: page?.dataset.currentSortKey ?? 'lastName',
-        desc: page?.dataset.currentSortDesc === 'true',
-        page: page?.dataset.currentPage ?? '1'
-    };
-}
-
-function buildStudentsUrl(groupId, page, sortKey, sortDesc) {
-    return `/students/getstudent?groupId=${groupId}&page=${page}&sortKey=${sortKey}&sortDesc=${sortDesc}`;
-}
-
 connection.on("StudentUpdated", (studentId, firstName, lastName, groupId) => {
     const collapse = document.getElementById(`collapse-${groupId}`);
     if (!collapse) return;
@@ -70,6 +57,13 @@ connection.on("StudentDeleted", (studentId, groupId) => {
     } else if (collapse.querySelector('.students-container')?.innerHTML.trim()) {
         collapse.dataset.dirty = 'true';
     }
+});
+
+connection.on("GroupAdded", () => searchGroups(currentPage));
+
+connection.on("GroupUpdated", (groupId, name) => {
+    const item = document.querySelector(`li[data-id="${groupId}"] strong`);
+    if (item) item.textContent = name;
 });
 
 connection.on("GroupDeleted", (groupId) => {
@@ -228,33 +222,6 @@ if (document.getElementById('groups-accordion')) {
         if (e.target.classList.contains('btn-page')) {
             const page = parseInt(e.target.dataset.page);
             if (!isNaN(page)) searchGroups(page);
-        }
-
-        if (e.target.classList.contains('btn-page-students')) {
-            const page = parseInt(e.target.dataset.page);
-            if (isNaN(page)) return;
-            const groupItem = e.target.closest('li[data-id]');
-            const groupId = groupItem.dataset.id;
-            const container = groupItem.querySelector('.students-container');
-            const collapse = groupItem.querySelector('.accordion-collapse');
-            const s = getStudentsSort(collapse);
-            fetch(buildStudentsUrl(groupId, page, s.key, s.desc))
-                .then(r => r.text())
-                .then(html => { container.innerHTML = html; });
-        }
-
-        const sortTh = e.target.closest('.students-page thead th.sortable');
-        if (sortTh) {
-            const groupItem = sortTh.closest('li[data-id]');
-            const groupId = groupItem.dataset.id;
-            const container = groupItem.querySelector('.students-container');
-            const collapse = groupItem.querySelector('.accordion-collapse');
-            const s = getStudentsSort(collapse);
-            const newKey = sortTh.dataset.sortKey;
-            const newDesc = (s.key === newKey) ? !s.desc : false;
-            fetch(buildStudentsUrl(groupId, s.page, newKey, newDesc))
-                .then(r => r.text())
-                .then(html => { container.innerHTML = html; });
         }
 
         if (e.target.classList.contains('btn-export-students')) {

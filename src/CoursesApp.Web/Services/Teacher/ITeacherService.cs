@@ -9,5 +9,6 @@ public interface ITeacherService
     Task UpdateTeacherAsync(TeacherEditDto dto, CancellationToken ct = default);
     Task ValidateExistAsync(Guid id, CancellationToken ct = default);
     Task DeleteTeacherAsync(Guid id, CancellationToken ct = default);
+    Task<List<TeacherSuggestionDto>> SuggestAsync(string query, int take, CancellationToken ct = default);
     
 }

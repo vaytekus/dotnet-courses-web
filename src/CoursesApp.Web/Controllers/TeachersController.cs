@@ -12,6 +12,9 @@ public class TeachersController(
     ILogger<TeachersController> logger)
     : BaseController(logger, configuration)
 {
+    private const int _takeSuggests = 8;
+    private const int _minSuggestQueryLength = 2;
+
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         logger.LogInformation("Loading teachers page");
@@ -32,6 +35,18 @@ public class TeachersController(
             search, sortKey, sortDesc, page); 
         var model = await BuildViewModelAsync(search, sortKey, sortDesc, page, ct);
         return PartialView("_TeachersTableBody", model);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Suggest(string? query, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(query) || query.Trim().Length < _minSuggestQueryLength)
+        {
+            return Json(Array.Empty<TeacherSuggestionDto>());
+        }
+
+        var items = await teacherService.SuggestAsync(query.Trim(), take: _takeSuggests, ct);
+        return Json(items);
     }
 
     [HttpPost]

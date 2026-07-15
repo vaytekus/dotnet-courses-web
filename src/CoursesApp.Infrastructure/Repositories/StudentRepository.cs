@@ -11,7 +11,7 @@ public class StudentRepository(AppDbContext context) : RepositoryBase(context), 
             .ToListAsync(ct);
     }
 
-    public async Task<(List<Student>, int TotalCount)> GetFilteredStudentAsync(
+    public async Task<(List<Student> Students, int TotalCount)> GetFilteredStudentAsync(
         string? searchQuery, 
         Guid? groupId, 
         int page, 
@@ -26,10 +26,14 @@ public class StudentRepository(AppDbContext context) : RepositoryBase(context), 
 
         if (!string.IsNullOrEmpty(searchQuery))
         {
-            query = query.Where(s => 
-                s.FirstName.Contains(searchQuery) ||
-                s.LastName.Contains(searchQuery) || 
-                s.Group.Name.Contains(searchQuery));
+            var tokens = searchQuery.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var token in tokens)
+            {
+                query = query.Where(s => 
+                    s.FirstName.Contains(token) ||
+                    s.LastName.Contains(token) || 
+                    s.Group.Name.Contains(token));
+            }
         }
 
         if (groupId.HasValue)
@@ -69,12 +73,48 @@ public class StudentRepository(AppDbContext context) : RepositoryBase(context), 
 
     public async Task<List<Guid>> DeleteAllByGroupAsync(Guid groupId, CancellationToken ct = default)
     {
-        var students = await Context.Students
+        var ids = await Context.Students
             .Where(s => s.GroupId == groupId)
+            .Select(s => s.Id)
             .ToListAsync(ct);
         
-        var ids = students.Select(s => s.Id).ToList();
-        Context.Students.RemoveRange(students);
+        if (ids.Count == 0)
+        {
+            return ids;
+        }
+
+        await Context.Students
+            .Where(s => s.GroupId == groupId)
+            .ExecuteDeleteAsync(ct);
+
+        foreach (var entry in Context.ChangeTracker.Entries<Student>()
+                     .Where(e => e.Entity.GroupId == groupId).ToList())
+        {
+            entry.State = EntityState.Detached;
+        }
+        
         return ids;
+    }
+    
+    public async Task<List<(string FirstName, string LastName)>> SuggestAsync(
+        string query, Guid? groupId, int take,
+        CancellationToken ct = default)
+    {
+        var q = Context.Students.AsQueryable();
+
+        if (groupId.HasValue)
+        {
+            q = q.Where(s => s.GroupId == groupId);
+        }
+
+        var rows = await q
+            .Where(s => s.FirstName.Contains(query) || s.LastName.Contains(query))
+            .Select(s => new { s.FirstName, s.LastName })
+            .Distinct()
+            .OrderBy(s => s.LastName).ThenBy(s => s.FirstName)
+            .Take(take)
+            .ToListAsync(ct);
+
+        return rows.Select(r => (r.FirstName, r.LastName)).ToList();
     }
 }

@@ -42,16 +42,13 @@ public class GroupRepository(AppDbContext context) : RepositoryBase(context), IG
         return (groups, total);
     }
 
-    public async Task UnassignTeacherAsync(Guid teacherId, CancellationToken ct = default)
+    public Task UnassignTeacherAsync(Guid teacherId, CancellationToken ct = default)
     {
-        var groups = await Context.Groups
+        return Context.Groups
             .Where(g => g.TeacherId == teacherId)
-            .ToListAsync(ct);
-
-        foreach (var group in groups)
-        {
-            group.TeacherId = null;
-        }
+            .ExecuteUpdateAsync(
+            setters => setters.SetProperty(g => g.TeacherId, (Guid?)null),
+            ct);
     }
 
     public Task<Group?> GetByIdAsync(Guid groupId, CancellationToken ct = default)
@@ -87,5 +84,15 @@ public class GroupRepository(AppDbContext context) : RepositoryBase(context), IG
         }
 
         return query.AnyAsync(ct);
+    }
+
+    public async Task<GroupCapacityInfo> GetCapacityAsync(Guid groupId, CancellationToken ct = default)
+    {
+        var info = await Context.Groups
+            .Where(g => g.Id == groupId)
+            .Select(g => new GroupCapacityInfo(g.MaxCapacity, g.Students.Count))
+            .FirstOrDefaultAsync(ct);
+
+        return info ?? new GroupCapacityInfo(null, 0);
     }
 }

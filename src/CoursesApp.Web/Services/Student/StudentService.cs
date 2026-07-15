@@ -1,3 +1,5 @@
+using CoursesApp.Domain.Exceptions;
+
 namespace CoursesApp.Web.Services;
 
 public class StudentService(
@@ -25,6 +27,15 @@ public class StudentService(
     public async Task AddStudentAsync(StudentDto studentDto, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(studentDto);
+        var groupId = studentDto.GroupId ?? Guid.Empty;
+
+        var capacity = await _uow.Groups.GetCapacityAsync(groupId, ct);
+        if (capacity.IsFull)
+        {
+            throw new GroupCapacityExceededException(
+                $"Group is full — max capacity is {capacity.MaxCapacity} students");
+        }
+        
         _logger.LogInformation("Adding student {FirstName} {LastName} to group {GroupId}",
             studentDto.FirstName, studentDto.LastName, studentDto.GroupId);
         var student = new Domain.Entities.Student
@@ -47,6 +58,16 @@ public class StudentService(
             ?? throw new KeyNotFoundException($"Student {studentDto.Id} not found");
 
         var oldGroupId = student.GroupId;
+        if (oldGroupId != studentDto.GroupId)
+        {
+            var capacity = await _uow.Groups.GetCapacityAsync(studentDto.GroupId, ct);
+            if (capacity.IsFull)
+            {
+                throw new GroupCapacityExceededException(
+                    $"Target group is full — max capacity is {capacity.MaxCapacity} students");
+            }
+        }
+        
         student.FirstName = studentDto.FirstName;
         student.LastName = studentDto.LastName;
         student.GroupId = studentDto.GroupId;
@@ -74,5 +95,13 @@ public class StudentService(
         await _uow.SaveAsync(ct);
         _logger.LogInformation("All students cleared from group {GroupId}", id);
         return ids;
+    }
+    public async Task<List<StudentSuggestionDto>> SuggestAsync(
+        string query, Guid? groupId, int take, CancellationToken ct = default)
+    {
+        _logger.LogInformation("Suggesting students for '{Query}' groupId={GroupId} take={Take}", query, groupId, take);
+        var rows = await _uow.Students.SuggestAsync(query, groupId, take, ct);
+
+        return rows.Select(r => new StudentSuggestionDto(r.FirstName, r.LastName)).ToList();
     }
 }

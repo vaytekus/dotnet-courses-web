@@ -60,7 +60,7 @@ public class GroupService(
         return groups.ToSelectDtoList();
     }
 
-    public async Task AddGroupAsync(GroupCreateDto dto, CancellationToken ct = default)
+    public async Task<Guid> AddGroupAsync(GroupCreateDto dto, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(dto);
         var name = dto.Name.Trim();
@@ -82,6 +82,8 @@ public class GroupService(
         await _uow.SaveAsync(ct);
         _logger.LogInformation("Group {Id} added successfully", group.Id);
         InvalidateCache();
+
+        return group.Id;
     }
 
     public async Task UpdateGroupAsync(GroupEditDto dto, CancellationToken ct = default)

@@ -1,0 +1,20 @@
+@model CoursesApp.Web.DTOs.TeacherDto
+
+<div class="p-3 bg-light border-top">
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="text-uppercase small fw-semibold text-muted mb-2">Personal</div>
+            <div><div class="text-muted small">DOB</div><div>@(Model.DateOfBirth?.ToString("yyyy-MM-dd") ?? "—")</div></div>
+        </div>
+        <div class="col-md-4">
+            <div class="text-uppercase small fw-semibold text-muted mb-2">Contact</div>
+            <div class="mb-2"><div class="text-muted small">Email</div><div>@(Model.Email ?? "—")</div></div>
+            <div><div class="text-muted small">Phone</div><div>@(Model.Phone ?? "—")</div></div>
+        </div>
+        <div class="col-md-4">
+            <div class="text-uppercase small fw-semibold text-muted mb-2">Employment</div>
+            <div class="mb-2"><div class="text-muted small">Hired</div><div>@(Model.HireDate?.ToString("yyyy-MM-dd") ?? "—")</div></div>
+            <div><div class="text-muted small">Degree</div><div>@(Model.Degree ?? "—")</div></div>
+        </div>
+    </div>
+</div>

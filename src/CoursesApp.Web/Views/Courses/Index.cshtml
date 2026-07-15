@@ -18,8 +18,22 @@
                 <li class="accordion-item list-group-item">
                     <div class="accordion-header">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@course.Id" aria-expanded="false" aria-controls="collapse-@course.Id">
-                            <h2 class="mb-0 me-1">@course.Name</h2> - 
-                            <p class="mb-0 ms-1">@course.Description</p>
+                            <div class="d-flex flex-wrap align-items-center gap-2 pe-3 w-100">
+                                <h2 class="mb-0 me-2">@course.Name</h2>
+                                @if (course.Level.HasValue)
+                                {
+                                    <span class="badge bg-info text-dark">@course.Level</span>
+                                }
+                                @if (course.DurationWeeks.HasValue)
+                                {
+                                    <span class="badge bg-secondary">@course.DurationWeeks wk</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(course.Category))
+                                {
+                                    <span class="badge bg-light text-dark border">@course.Category</span>
+                                }
+                                <span class="text-muted ms-2">@course.Description</span>
+                            </div>
                         </button>
                     </div>
                     <div id="collapse-@course.Id" class="accordion-collapse collapse" data-bs-parent="#accordionCourse">
@@ -33,11 +47,11 @@
                                                 <h3>@group.Name</h3>
                                             </button>
                                         </div>
-                                        <div id="collapse-@group.Id" 
-                                            class="accordion-collapse collapse" 
+                                        <div id="collapse-@group.Id"
+                                            class="accordion-collapse collapse"
                                             data-bs-parent="#accordionGroup-@course.Id"
                                             data-group-id="@group.Id"
-                                            >
+                                            data-readonly="true">
                                             <div class="students-container"></div>
                                         </div>
                                     </li>

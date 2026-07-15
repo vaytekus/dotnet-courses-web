@@ -17,10 +17,40 @@ connection.on("StudentDeleted", (studentId) => {
     searchStudents(currentPage);
 });
 
+connection.on("GroupAdded", (groupId, name) => {
+    document.querySelectorAll('#filteringByGroup, #selectStudentGroup').forEach(select => {
+        if (select.querySelector(`option[value="${groupId}"]`)) return;
+        const opt = document.createElement('option');
+        opt.value = groupId;
+        opt.textContent = name;
+        select.appendChild(opt);
+    });
+});
+
+connection.on("GroupUpdated", (groupId, name) => {
+    document.querySelectorAll(
+        `#filteringByGroup option[value="${groupId}"], ` +
+        `#selectStudentGroup option[value="${groupId}"], ` +
+        `#students-table select[name="groupId"] option[value="${groupId}"]`
+    ).forEach(opt => opt.textContent = name);
+
+    document.querySelectorAll(`#students-table tr[data-group-id="${groupId}"] td:nth-child(4) .view-mode`)
+        .forEach(cell => cell.textContent = name);
+});
+
 connection.on("GroupDeleted", (groupId, studentIds) => {
-    if (!studentIds?.length) return;
-    const hasVisible = studentIds.some(id => document.querySelector(`#students-table tr[data-id="${id}"]`));
-    if (hasVisible) searchStudents(currentPage);
+    document.querySelectorAll(
+        `#filteringByGroup option[value="${groupId}"], #selectStudentGroup option[value="${groupId}"]`
+    ).forEach(opt => {
+        const select = opt.parentElement;
+        const wasSelected = opt.selected;
+        opt.remove();
+        if (wasSelected) select.value = '';
+    });
+    if (studentIds?.length) {
+        const hasVisible = studentIds.some(id => document.querySelector(`#students-table tr[data-id="${id}"]`));
+        if (hasVisible) searchStudents(currentPage);
+    }
 });
 
 connection.on("StudentsCleared", (groupId, studentIds) => {
@@ -141,6 +171,7 @@ if (document.getElementById('students-table')) {
                         if (_studentTableDirty) { _studentTableDirty = false; searchStudents(currentPage); }
                     } else {
                         _pendingSaveStudentId = null;
+                        showError(res.message ?? 'Error updating student');
                     }
                 });
         }
@@ -152,7 +183,10 @@ if (document.getElementById('students-table')) {
             const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
             document.getElementById('btn-confirm-delete').onclick = () => {
                 apiCall(`/students/delete/${row.dataset.id}?groupId=${row.dataset.groupId}`, 'DELETE')
-                    .then(res => { if (res.success) { modal.hide(); row.remove(); } });
+                    .then(res => {
+                        if (res.success) { modal.hide(); row.remove(); }
+                        else showError(res.message ?? 'Error deleting student');
+                    });
             };
             modal.show();
         }
@@ -209,7 +243,7 @@ if (addForm) {
         apiCall('/students/add', 'POST', { firstName: firstName.value, lastName: lastName.value, groupId: group.value })
             .then(res => {
                 if (res.success) { addForm.reset(); toggleForm(); }
-                else { saveBtn.disabled = false; }
+                else { saveBtn.disabled = false; showError(res.message ?? 'Error adding student'); }
             }).catch(() => { saveBtn.disabled = false; });
     }
 
@@ -223,6 +257,103 @@ if (addForm) {
 
 const searchForm = document.getElementById('search-student-form');
 if (searchForm) {
-    document.getElementById('search-input').addEventListener('input', () => searchStudents(1));
-    document.getElementById('filteringByGroup').addEventListener('change', () => searchStudents(1));
+    const input = document.getElementById('search-input');
+    const groupFilter = document.getElementById('filteringByGroup');
+    const suggestBox = document.getElementById('search-suggestions');
+    let suggestAbortController = null;
+    let activeIndex = -1;
+
+    function escapeHtml(s) {
+        return s.replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+    }
+
+    function highlight(text, query) {
+        const safe = escapeHtml(text);
+        if (!query) return safe;
+        const safeQuery = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return safe.replace(new RegExp(`(${safeQuery})`, 'ig'), '<strong>$1</strong>');
+    }
+
+    function hideSuggestions() {
+        suggestBox.classList.add('d-none');
+        suggestBox.innerHTML = '';
+        activeIndex = -1;
+    }
+
+    function renderSuggestions(items, query) {
+        if (!items.length) { hideSuggestions(); return; }
+        suggestBox.innerHTML = items.map((it, i) =>
+            `<button type="button" class="list-group-item list-group-item-action suggest-item" data-index="${i}" data-value="${escapeHtml(it.firstName + ' ' + it.lastName)}">
+                ${highlight(it.firstName, query)} ${highlight(it.lastName, query)}
+            </button>`
+        ).join('');
+        suggestBox.classList.remove('d-none');
+        activeIndex = -1;
+    }
+
+    function updateActiveHighlight() {
+        suggestBox.querySelectorAll('.suggest-item').forEach((el, i) => {
+            el.classList.toggle('active', i === activeIndex);
+        });
+    }
+
+    function selectSuggestion(value) {
+        input.value = value;
+        hideSuggestions();
+        searchStudents(1);
+    }
+
+    const _doSuggest = debounce(() => {
+        const q = input.value.trim();
+        if (q.length < 2) { hideSuggestions(); return; }
+        if (suggestAbortController) suggestAbortController.abort();
+        suggestAbortController = new AbortController();
+        const params = new URLSearchParams({ query: q, groupId: groupFilter.value ?? '' });
+        fetch(`/students/suggest?${params}`, { signal: suggestAbortController.signal })
+            .then(r => r.json())
+            .then(items => renderSuggestions(items, q))
+            .catch(err => { if (err.name !== 'AbortError') console.error(err); });
+    }, 200);
+
+    input.addEventListener('input', () => {
+        _doSuggest();
+        searchStudents(1);
+    });
+
+    input.addEventListener('keydown', (e) => {
+        const items = suggestBox.querySelectorAll('.suggest-item');
+        if (!items.length) return;
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            activeIndex = (activeIndex + 1) % items.length;
+            updateActiveHighlight();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            activeIndex = (activeIndex - 1 + items.length) % items.length;
+            updateActiveHighlight();
+        } else if (e.key === 'Enter' && activeIndex >= 0) {
+            e.preventDefault();
+            selectSuggestion(items[activeIndex].dataset.value);
+        } else if (e.key === 'Escape') {
+            hideSuggestions();
+        }
+    });
+
+    suggestBox.addEventListener('mousedown', (e) => {
+        const btn = e.target.closest('.suggest-item');
+        if (!btn) return;
+        e.preventDefault();
+        selectSuggestion(btn.dataset.value);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!searchForm.contains(e.target)) hideSuggestions();
+    });
+
+    groupFilter.addEventListener('change', () => {
+        hideSuggestions();
+        searchStudents(1);
+    });
 }

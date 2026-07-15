@@ -4,14 +4,17 @@
     Layout = null;
 }
 
-<div class="d-flex justify-content-end gap-2 mb-2 pt-3">
-    <button class="btn btn-sm btn-outline-success btn-export-students" type="button">↓ Export</button>
-    <button class="btn btn-sm btn-outline-primary btn-import-students" type="button">↑ Import</button>
-    @if (Model.TotalCount > 0)
-    {
-        <button class="btn btn-sm btn-warning btn-clear-students" type="button">Clear all students</button>
-    }
-</div>
+@if (Model.ShowActions)
+{
+    <div class="d-flex justify-content-end gap-2 mb-2 pt-3">
+        <button class="btn btn-sm btn-outline-success btn-export-students" type="button">↓ Export</button>
+        <button class="btn btn-sm btn-outline-primary btn-import-students" type="button">↑ Import</button>
+        @if (Model.TotalCount > 0)
+        {
+            <button class="btn btn-sm btn-warning btn-clear-students" type="button">Clear all students</button>
+        }
+    </div>
+}
 
 @if (Model.TotalCount == 0)
 {
@@ -28,7 +31,10 @@ else
                 <col style="width: 50px">
                 <col>
                 <col>
-                <col>
+                @if (Model.ShowActions)
+                {
+                    <col>
+                }
             </colgroup>
             <thead>
                 <tr>
@@ -47,18 +53,34 @@ else
                             <span>@(Model.SortDesc ? "▼" : "▲")</span>
                         }
                     </th>
-                    <th>Action</th>
+                    @if (Model.ShowActions)
+                    {
+                        <th>Action</th>
+                    }
                 </tr>
             </thead>
             <tbody>
                 @for (int i = 0; i < Model.Students.Count; i++)
                 {
-                    <tr data-id="@Model.Students[i].Id">
-                        <td>@((Model.Page - 1) * Model.PageSize + i + 1)</td>
-                        <td>@Model.Students[i].FirstName</td>
-                        <td>@Model.Students[i].LastName</td>
+                    var s = Model.Students[i];
+                    var detailsId = $"student-details-{s.Id}";
+                    <tr data-id="@s.Id" class="details-row" role="button" data-details-target="#@detailsId">
                         <td>
-                            <button class="btn btn-sm btn-danger btn-delete">Delete</button>
+                            <span class="chevron me-1">▸</span>
+                            @((Model.Page - 1) * Model.PageSize + i + 1)
+                        </td>
+                        <td>@s.FirstName</td>
+                        <td>@s.LastName</td>
+                        @if (Model.ShowActions)
+                        {
+                            <td>
+                                <button class="btn btn-sm btn-danger btn-delete">Delete</button>
+                            </td>
+                        }
+                    </tr>
+                    <tr id="@detailsId" class="student-details d-none">
+                        <td colspan="@(Model.ShowActions ? 4 : 3)" class="p-0">
+                            @await Html.PartialAsync("_StudentDetailsCard", s)
                         </td>
                     </tr>
                 }

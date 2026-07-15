@@ -41,9 +41,13 @@
 
 <hr class="my-2 pt-2">
 
-<form id="search-teacher-form" class="d-flex align-items-center gap-2 mb-3">
+<form id="search-teacher-form" class="d-flex align-items-center gap-2 mb-3 position-relative">
     <span class="text-muted small fw-semibold me-1">Filters:</span>
-    <input type="text" id="search-input" class="form-control w-25" placeholder="Search by name...">
+    <div class="position-relative w-25">
+        <input type="text" id="search-input" class="form-control" placeholder="Search by name..." autocomplete="off">
+        <div id="search-suggestions" class="list-group position-absolute w-100 shadow-sm d-none"
+             style="z-index: 1050; top: 100%; max-height: 240px; overflow-y: auto;"></div>
+    </div>
 </form>
 
 <table class="table align-middle" id="teachers-table" style="table-layout: fixed">

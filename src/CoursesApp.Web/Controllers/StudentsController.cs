@@ -15,6 +15,8 @@ public class StudentsController(
 {
     private const string _csvContentType = "text/csv";
     private const string _csvFileName = "students.csv";
+    private const int _takeSuggests = 8;
+    private const int _minSuggestQueryLength = 2;
 
     public async Task<IActionResult> Index(CancellationToken ct)
     {
@@ -39,8 +41,8 @@ public class StudentsController(
 
     [HttpGet]
     public async Task<IActionResult> Search(
-        string? search, Guid? groupId, int page = 1, 
-        StudentSortKey sortKey = StudentSortKey.LastName, bool sortDesc = false, 
+        string? search, Guid? groupId, int page = 1,
+        StudentSortKey sortKey = StudentSortKey.LastName, bool sortDesc = false,
         CancellationToken ct = default)
     {
         logger.LogInformation("Searching students: search={Search}, groupId={GroupId}, sort={Sort} desc={Desc}, page={Page}",
@@ -49,15 +51,27 @@ public class StudentsController(
         return PartialView("_StudentsTableBody", model);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> Suggest(string? query, Guid? groupId, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(query) || query.Trim().Length < _minSuggestQueryLength)
+        {
+            return Json(Array.Empty<StudentSuggestionDto>());
+        }
+
+        var items = await studentService.SuggestAsync(query.Trim(), groupId, take: _takeSuggests, ct);
+        return Json(items);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Edit([FromBody] StudentEditDto dto, CancellationToken ct)
     {
         return await ExecuteAsync(
-            () => studentService.UpdateStudentAsync(dto, ct), 
+            () => studentService.UpdateStudentAsync(dto, ct),
             "Error updating student",
             async oldGroupId =>
             {
-                if(oldGroupId != dto.GroupId)
+                if (oldGroupId != dto.GroupId)
                 {
                     await hubContext.Clients.All.SendAsync("StudentDeleted", dto.Id, oldGroupId, cancellationToken: ct);
                     await hubContext.Clients.All.SendAsync("StudentAdded", dto.GroupId, cancellationToken: ct);
@@ -95,13 +109,14 @@ public class StudentsController(
 
     [HttpGet]
     public async Task<IActionResult> GetStudent(
-        Guid groupId, StudentSortKey sortKey = StudentSortKey.LastName, bool sortDesc = false, 
-        int page = 1, CancellationToken ct = default)
+        Guid groupId, StudentSortKey sortKey = StudentSortKey.LastName, bool sortDesc = false,
+        int page = 1, bool readOnly = false, CancellationToken ct = default)
     {
-        logger.LogInformation("Loading students for group {GroupId}, page {Page}, sort={Sort} desc={Desc}", groupId, page, sortKey, sortDesc);
+        logger.LogInformation("Loading students for group {GroupId}, page {Page}, sort={Sort} desc={Desc}, readOnly={ReadOnly}",
+            groupId, page, sortKey, sortDesc, readOnly);
         var (students, total, effectivePage) = await GetPageAsync(
             null, groupId, sortKey, sortDesc, page, ct);
-        
+
         var model = new GroupStudentsPageViewModel
         {
             Students = students,
@@ -110,9 +125,10 @@ public class StudentsController(
             PageSize = PageSize,
             TotalCount = total,
             SortKey = sortKey,
-            SortDesc = sortDesc
+            SortDesc = sortDesc,
+            ShowActions = !readOnly
         };
-        
+
         return PartialView("~/Views/Groups/_StudentsBody.cshtml", model);
     }
 

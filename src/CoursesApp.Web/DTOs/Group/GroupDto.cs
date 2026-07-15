@@ -9,4 +9,8 @@ public class GroupDto
     public Guid? TeacherId { get; set; }
     public Teacher? Teacher { get; set; } = null!;
     public ICollection<Student> Students { get; set; } = [];
+
+    public DateOnly? StartDate { get; set; }
+    public DateOnly? EndDate { get; set; }
+    public int? MaxCapacity { get; set; }
 }

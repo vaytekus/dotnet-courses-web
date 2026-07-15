@@ -3,11 +3,18 @@ namespace CoursesApp.Web.Services;
 public class SimpleCsvLineParser : CsvLineParserBase
 {
     private const int _minParts = 2;
-    private const int _firstNameIndex = 0;
-    private const int _lastNameIndex = 1;
 
     public override bool CanParse(string[] parts) => parts.Length >= _minParts;
 
-    public override (string FirstName, string LastName) Parse(string[] parts) =>
-        (Clean(parts[_firstNameIndex]), Clean(parts[_lastNameIndex]));
+    public override StudentCsvRow Parse(string[] parts) => new(
+        Clean(parts[0]),
+        Clean(parts[1]),
+        ParseDate(CleanOpt(parts, 2)),
+        ParseGender(CleanOpt(parts, 3)),
+        CleanOpt(parts, 4),
+        CleanOpt(parts, 5),
+        CleanOpt(parts, 6),
+        CleanOpt(parts, 7),
+        CleanOpt(parts, 8),
+        CleanOpt(parts, 9));
 }

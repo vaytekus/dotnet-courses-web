@@ -31,14 +31,17 @@ public class GroupsController(
     }
 
     [HttpPost]
-    public async Task<IActionResult> Add([FromBody] GroupCreateDto? dto,CancellationToken ct)
+    public async Task<IActionResult> Add([FromBody] GroupCreateDto? dto, CancellationToken ct)
     {
         if (dto is null)
         {
             return BadRequest("Invalid data");
         }
         
-        return await ExecuteAsync(() => groupService.AddGroupAsync(dto, ct), "Error adding group");
+        return await ExecuteAsync(
+            () => groupService.AddGroupAsync(dto, ct),
+            "Error adding group",
+            id => hubContext.Clients.All.SendAsync("GroupAdded", id, dto.Name.Trim(), cancellationToken: ct));
     }
 
     [HttpPost]
@@ -49,7 +52,10 @@ public class GroupsController(
             return BadRequest("Invalid data");
         }
         
-        return await ExecuteAsync(() => groupService.UpdateGroupAsync(dto, ct), "Error updating group");
+        return await ExecuteAsync(
+        () => groupService.UpdateGroupAsync(dto, ct),
+        "Error updating group",
+        () => hubContext.Clients.All.SendAsync("GroupUpdated", dto.Id, dto.Name.Trim(), cancellationToken: ct));
     }
 
     [HttpDelete]

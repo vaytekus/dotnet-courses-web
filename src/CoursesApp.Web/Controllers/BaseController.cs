@@ -58,7 +58,7 @@ public abstract class BaseController(
 
     private IActionResult Fail(Exception ex, string errorMessage)
     {
-        if (ex is DuplicateNameException)
+        if (ex is DuplicateNameException or GroupCapacityExceededException)
         {
             logger.LogWarning(ex, errorMessage);
             return Json(new { success = false, message = ex.Message });

@@ -9,4 +9,5 @@ public interface IStudentService
     Task<Guid> UpdateStudentAsync(StudentEditDto dto, CancellationToken ct = default);
     Task DeleteStudentAsync(Guid id, CancellationToken ct = default);
     Task<List<Guid>> ClearAllStudentsAsync(Guid id, CancellationToken ct = default);
+    Task<List<StudentSuggestionDto>> SuggestAsync(string query, Guid? groupId, int take, CancellationToken ct = default);
 }

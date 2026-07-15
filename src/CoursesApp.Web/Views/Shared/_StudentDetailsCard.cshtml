@@ -1,0 +1,23 @@
+@model CoursesApp.Web.DTOs.StudentDto
+
+<div class="p-3 bg-light border-top">
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="text-uppercase small fw-semibold text-muted mb-2">Personal</div>
+            <div class="mb-2"><div class="text-muted small">DOB</div><div>@(Model.DateOfBirth?.ToString("yyyy-MM-dd") ?? "—")</div></div>
+            <div class="mb-2"><div class="text-muted small">Gender</div><div>@(Model.Gender?.ToString() ?? "—")</div></div>
+            <div><div class="text-muted small">Tax ID</div><div>@(Model.TaxId ?? "—")</div></div>
+        </div>
+        <div class="col-md-4">
+            <div class="text-uppercase small fw-semibold text-muted mb-2">Contact</div>
+            <div class="mb-2"><div class="text-muted small">Email</div><div>@(Model.Email ?? "—")</div></div>
+            <div><div class="text-muted small">Phone</div><div>@(Model.Phone ?? "—")</div></div>
+        </div>
+        <div class="col-md-4">
+            <div class="text-uppercase small fw-semibold text-muted mb-2">Address</div>
+            <div class="mb-2"><div class="text-muted small">City</div><div>@(Model.City ?? "—")</div></div>
+            <div class="mb-2"><div class="text-muted small">Street</div><div>@(Model.Street ?? "—")</div></div>
+            <div><div class="text-muted small">Postal code</div><div>@(Model.PostalCode ?? "—")</div></div>
+        </div>
+    </div>
+</div>

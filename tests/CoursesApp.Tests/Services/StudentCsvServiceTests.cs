@@ -4,13 +4,18 @@ public class StudentCsvServiceTests
 {
     private readonly Mock<IUnitOfWork> _uow;
     private readonly Mock<IStudentRepository> _students;
+    private readonly Mock<IGroupRepository> _groups;
     private readonly CsvService _sut;
 
     public StudentCsvServiceTests()
     {
         _uow = new Mock<IUnitOfWork>();
         _students = new Mock<IStudentRepository>();
+        _groups = new Mock<IGroupRepository>();
         _uow.Setup(u => u.Students).Returns(_students.Object);
+        _uow.Setup(u => u.Groups).Returns(_groups.Object);
+        _groups.Setup(r => r.GetCapacityAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GroupCapacityInfo(null, 0));
         var parsers = new ICsvLineParser[] { new NumberedCsvLineParser(), new SimpleCsvLineParser() };
         _sut = new CsvService(_uow.Object, parsers);
     }

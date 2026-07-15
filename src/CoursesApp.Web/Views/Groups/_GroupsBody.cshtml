@@ -56,6 +56,11 @@ else
 
             <div id="collapse-@group.Id" class="accordion-collapse collapse" data-group-id="@group.Id">
                 <div class="accordion-body">
+                    <div class="d-flex flex-wrap gap-3 small text-muted mb-3 pb-2 border-bottom">
+                        <span><strong class="text-body">Start:</strong> @(group.StartDate?.ToString("yyyy-MM-dd") ?? "—")</span>
+                        <span><strong class="text-body">End:</strong> @(group.EndDate?.ToString("yyyy-MM-dd") ?? "—")</span>
+                        <span><strong class="text-body">Max capacity:</strong> @(group.MaxCapacity?.ToString() ?? "—")</span>
+                    </div>
                     <div class="students-container"></div>
                 </div>
             </div>

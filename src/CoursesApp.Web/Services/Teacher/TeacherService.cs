@@ -62,4 +62,10 @@ public class TeacherService(
         await _uow.SaveAsync(ct);
         _logger.LogInformation("Teacher {Id} deleted successfully", id);
     }
+    public async Task<List<TeacherSuggestionDto>> SuggestAsync(string query, int take, CancellationToken ct = default)
+    {
+        _logger.LogInformation("Suggesting teachers for '{Query}' take={Take}", query, take);
+        var rows = await _uow.Teachers.SuggestAsync(query, take, ct);
+        return rows.Select(r => new TeacherSuggestionDto(r.FirstName, r.LastName)).ToList(); 
+    }
 }

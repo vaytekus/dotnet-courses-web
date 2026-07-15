@@ -18,8 +18,13 @@ public class TeacherRepository(AppDbContext context) : RepositoryBase(context), 
 
         if (!string.IsNullOrEmpty(search))
         {
-            query = query.Where(s => s.FirstName.Contains(search) || 
-                                     s.LastName.Contains(search));
+            var tokens = search.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            
+            foreach (var token in tokens)
+            {
+                query = query.Where(s => s.FirstName.Contains(token) || 
+                                     s.LastName.Contains(token));
+            }
         }
         
         var total = await query.CountAsync(ct);
@@ -30,6 +35,21 @@ public class TeacherRepository(AppDbContext context) : RepositoryBase(context), 
             .ToListAsync(ct);
 
         return (teachers, total);
+    }
+    public async Task<List<(string FirstName, string LastName)>> SuggestAsync(
+        string query, int take, CancellationToken ct = default)
+    { 
+        var q = Context.Teachers.AsQueryable();
+        
+        var rows = await q
+            .Where(t => t.FirstName.Contains(query) || t.LastName.Contains(query))
+            .Select(t => new {t.FirstName, t.LastName})
+            .Distinct()
+            .OrderBy(t => t.LastName).ThenBy(t => t.FirstName)
+            .Take(take)
+            .ToListAsync(ct);
+        
+        return rows.Select(r => (r.FirstName, r.LastName)).ToList();
     }
 
     public async Task<Teacher?> GetByIdAsync(Guid id, CancellationToken ct = default)

@@ -12,24 +12,27 @@ else
 {
     @for (int i = 0; i < Model.Teachers.Count; i++)
     {
-        <tr data-id="@Model.Teachers[i].Id"
-            data-first-name="@Model.Teachers[i].FirstName"
-            data-last-name="@Model.Teachers[i].LastName">
-            <td>@((Model.Page - 1) * Model.PageSize + i + 1)</td>
+        var t = Model.Teachers[i];
+        var detailsId = $"teacher-details-{t.Id}";
+        <tr data-id="@t.Id"
+            data-first-name="@t.FirstName"
+            data-last-name="@t.LastName"
+            class="details-row"
+            data-details-target="#@detailsId">
             <td>
-                <span class="view-mode">
-                    @Model.Teachers[i].FirstName
-                </span>
+                <span class="chevron me-1" role="button">▸</span>
+                @((Model.Page - 1) * Model.PageSize + i + 1)
+            </td>
+            <td>
+                <span class="view-mode">@t.FirstName</span>
                 <span class="edit-mode d-none">
-                    <input class="form-control" value="@Model.Teachers[i].FirstName" name="firstName"/>
+                    <input class="form-control" value="@t.FirstName" name="firstName"/>
                 </span>
             </td>
             <td>
-                <span class="view-mode">
-                    @Model.Teachers[i].LastName
-                </span>
+                <span class="view-mode">@t.LastName</span>
                 <span class="edit-mode d-none">
-                    <input class="form-control" value="@Model.Teachers[i].LastName" name="lastName"/>
+                    <input class="form-control" value="@t.LastName" name="lastName"/>
                 </span>
             </td>
             <td>
@@ -41,6 +44,11 @@ else
                     <button class="btn btn-sm btn-success btn-save">Save</button>
                     <button class="btn btn-sm btn-secondary btn-cancel">Cancel</button>
                 </span>
+            </td>
+        </tr>
+        <tr id="@detailsId" class="student-details d-none">
+            <td colspan="4" class="p-0">
+                @await Html.PartialAsync("_TeacherDetailsCard", t)
             </td>
         </tr>
     }
