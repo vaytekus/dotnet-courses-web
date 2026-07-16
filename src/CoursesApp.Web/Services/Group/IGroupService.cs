@@ -8,4 +8,6 @@ public interface IGroupService
     Task UpdateGroupAsync(GroupEditDto dto, CancellationToken ct = default);
     Task UnassignTeacherAsync(Guid teacherId, CancellationToken ct = default);
     Task<GroupDeletionResult> DeleteGroupAsync(Guid id, bool deleteStudents = false, CancellationToken ct = default);
+    Task<List<GroupSuggestionDto>> SuggestAsync(string query, int take, CancellationToken ct = default);
+    void InvalidateTeachersCache();
 }

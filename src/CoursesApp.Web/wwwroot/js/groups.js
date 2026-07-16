@@ -325,7 +325,100 @@ if (addForm) {
 
 const searchForm = document.getElementById('search-group-form');
 if (searchForm) {
-    document.getElementById('search-input').addEventListener('input', () => searchGroups(1));
+    const input = document.getElementById('search-input');
+    const suggestBox = document.getElementById('search-suggestions');
+    let suggestAbortController = null;
+    let activeIndex = -1;
+
+    function escapeHtml(s) {
+        return s.replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+    }
+
+    function highlight(text, query) {
+        const safe = escapeHtml(text);
+        if (!query) return safe;
+        const safeQuery = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return safe.replace(new RegExp(`(${safeQuery})`, 'ig'), '<strong>$1</strong>');
+    }
+
+    function hideSuggestions() {
+        suggestBox.classList.add('d-none');
+        suggestBox.innerHTML = '';
+        activeIndex = -1;
+    }
+
+    function renderSuggestions(items, query) {
+        if (!items.length) { hideSuggestions(); return; }
+        suggestBox.innerHTML = items.map((it, i) =>
+            `<button type="button" class="list-group-item list-group-item-action suggest-item" data-index="${i}" data-value="${escapeHtml(it.name)}">
+                ${highlight(it.name, query)}
+            </button>`
+        ).join('');
+        suggestBox.classList.remove('d-none');
+        activeIndex = -1;
+    }
+
+    function updateActiveHighlight() {
+        suggestBox.querySelectorAll('.suggest-item').forEach((el, i) => {
+            el.classList.toggle('active', i === activeIndex);
+        });
+    }
+
+    function selectSuggestion(value) {
+        input.value = value;
+        hideSuggestions();
+        searchGroups(1);
+    }
+
+    const _doSuggest = debounce(() => {
+        const q = input.value.trim();
+        if (q.length < 2) { hideSuggestions(); return; }
+        if (suggestAbortController) suggestAbortController.abort();
+        suggestAbortController = new AbortController();
+        const params = new URLSearchParams({ query: q });
+        fetch(`/groups/suggest?${params}`, { signal: suggestAbortController.signal })
+            .then(r => r.json())
+            .then(items => renderSuggestions(items, q))
+            .catch(err => { if (err.name !== 'AbortError') console.error(err); });
+    }, 200);
+
+    input.addEventListener('input', () => {
+        _doSuggest();
+        searchGroups(1);
+    });
+
+    input.addEventListener('keydown', (e) => {
+        const items = suggestBox.querySelectorAll('.suggest-item');
+        if (!items.length) return;
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            activeIndex = (activeIndex + 1) % items.length;
+            updateActiveHighlight();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            activeIndex = (activeIndex - 1 + items.length) % items.length;
+            updateActiveHighlight();
+        } else if (e.key === 'Enter' && activeIndex >= 0) {
+            e.preventDefault();
+            selectSuggestion(items[activeIndex].dataset.value);
+        } else if (e.key === 'Escape') {
+            hideSuggestions();
+        }
+    });
+
+    suggestBox.addEventListener('mousedown', (e) => {
+        const btn = e.target.closest('.suggest-item');
+        if (!btn) return;
+        e.preventDefault();
+        selectSuggestion(btn.dataset.value);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!searchForm.contains(e.target)) hideSuggestions();
+    });
+
     document.getElementById('filter-course').addEventListener('change', () => searchGroups(1));
     document.getElementById('filter-students').addEventListener('change', () => searchGroups(1));
 }

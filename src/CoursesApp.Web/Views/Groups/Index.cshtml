@@ -53,7 +53,13 @@
 
 <form id="search-group-form" class="d-flex align-items-center gap-2 mb-3">
     <span class="text-muted small fw-semibold me-1">Filters:</span>
-    <input type="text" id="search-input" class="form-control w-25" placeholder="Search by name...">
+    <div class="position-relative w-25">
+        <input type="text" id="search-input" class="form-control" placeholder="Search by name..." autocomplete="off">
+        <div 
+            id="search-suggestions" 
+            class="list-group position-absolute w-100 shadow-sm d-none" 
+            style="z-index: 1050; top: 100%; max-height: 240px; overflow-y: auto;"></div>
+        </div> 
     <select class="form-select w-25" id="filter-course">
         <option value="">All courses</option>
         @foreach (var course in Model.Courses)

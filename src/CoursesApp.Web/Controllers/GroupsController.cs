@@ -10,6 +10,9 @@ public class GroupsController(
     ILogger<GroupsController> logger)
     : BaseController(logger, configuration)
 {
+    private const int _takeSuggests = 8;
+    private const int _minSuggestQueryLength = 2;
+    
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         logger.LogInformation("Loading groups page");
@@ -75,5 +78,17 @@ public class GroupsController(
             logger.LogError(e, "Error deleting group");
             return Json(new { success = false, message = "Error deleting group" }); 
         }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Suggest(string? query, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(query) || query.Trim().Length < _minSuggestQueryLength)
+        {
+            return Json(Array.Empty<GroupSuggestionDto>());
+        }
+        
+        var items = await groupService.SuggestAsync(query.Trim(), _takeSuggests, ct);
+        return Json(items);
     }
 }

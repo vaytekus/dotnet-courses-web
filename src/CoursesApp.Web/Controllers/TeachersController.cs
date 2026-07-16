@@ -58,7 +58,12 @@ public class TeachersController(
         }
         
         return await ExecuteAsync(
-            () => teacherService.AddTeacherAsync(dto, ct),
+            async () =>
+            {
+                var id = await teacherService.AddTeacherAsync(dto, ct);
+                groupService.InvalidateTeachersCache();
+                return id;
+            },
             "Error adding teacher",
             id => hubContext.Clients.All.SendAsync("TeacherAdded", id, dto.FirstName, dto.LastName, cancellationToken: ct));
     }
@@ -67,7 +72,11 @@ public class TeachersController(
     public async Task<IActionResult> Edit([FromBody] TeacherEditDto dto, CancellationToken ct)
     {
         return await ExecuteAsync(
-            () => teacherService.UpdateTeacherAsync(dto, ct),
+            async () =>
+            {
+                await teacherService.UpdateTeacherAsync(dto, ct);
+                groupService.InvalidateTeachersCache();
+            },
             "Error updating teacher",
             () => hubContext.Clients.All.SendAsync("TeacherUpdated", dto.Id, dto.FirstName, dto.LastName, cancellationToken: ct));
     }

@@ -95,4 +95,15 @@ public class GroupRepository(AppDbContext context) : RepositoryBase(context), IG
 
         return info ?? new GroupCapacityInfo(null, 0);
     }
+
+    public async Task<List<string>> SuggestAsync(string query, int take, CancellationToken ct = default)
+    {
+        return await Context.Groups
+            .Where(g => g.Name.Contains(query))
+            .Select(g => g.Name)
+            .Distinct()
+            .OrderBy(n => n)
+            .Take(take)
+            .ToListAsync(ct);
+    }
 }

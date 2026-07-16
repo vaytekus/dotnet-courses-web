@@ -110,6 +110,7 @@ public class GroupService(
     public async Task UnassignTeacherAsync(Guid teacherId, CancellationToken ct = default)
     {
         await _uow.Groups.UnassignTeacherAsync(teacherId, ct);
+        InvalidateTeachersCache();
     }
 
     public async Task<GroupDeletionResult> DeleteGroupAsync(Guid id, bool deleteStudents = false, CancellationToken ct = default)
@@ -136,6 +137,17 @@ public class GroupService(
         InvalidateCache();
         
         return new GroupDeletionResult(true, deletedIds);
+    }
+    public async Task<List<GroupSuggestionDto>> SuggestAsync(string query, int take, CancellationToken ct = default)
+    {
+        _logger.LogInformation("Suggesting groups for '{Query}' take={Take}", query, take);
+        var names = await _uow.Groups.SuggestAsync(query, take, ct);
+        return names.Select(n => new GroupSuggestionDto(n)).ToList();
+    }
+
+    public void InvalidateTeachersCache()
+    {
+        _cache.Remove(_teachersCacheKey);
     }
 
     private void InvalidateCache()
